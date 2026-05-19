@@ -141,8 +141,6 @@ export default function HomePage() {
               if (filters.cities.length > 0 && !filters.cities.some(city => j.location.toLowerCase().includes(city.toLowerCase()))) return false;
               if (filters.license && !j.license) return false;
               if (filters.car && !j.car) return false;
-              if (filters.weekend && !j.weekend) return false;
-              if (filters.holidays && !j.holidays) return false;
             }
             return true;
           });
