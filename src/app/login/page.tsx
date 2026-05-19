@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -30,6 +30,11 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white px-6 pt-14" dir="rtl">
 
+      {/* Back button */}
+      <button onClick={() => router.back()} className="absolute top-12 right-4 w-11 h-11 flex items-center justify-center">
+        <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+      </button>
+
       {/* Logo */}
       <div className="flex justify-center mb-10">
         <Image src="/hevre-logo.png" alt="Hevre" width={110} height={44} className="object-contain" priority />
@@ -47,12 +52,12 @@ export default function LoginPage() {
             placeholder="אימייל"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            dir="ltr"
-            className="w-full text-left text-base outline-none placeholder:text-gray-400 bg-transparent"
+            dir="rtl"
+            className="w-full text-right text-base outline-none placeholder:text-gray-400 bg-transparent"
           />
         </div>
 
-        <div className="border-b border-gray-300 pb-2 flex items-center gap-2">
+        <div className="border-b border-gray-300 pb-2 flex items-center gap-2" style={{ direction: "ltr" }}>
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
@@ -65,6 +70,7 @@ export default function LoginPage() {
             placeholder="סיסמה"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            dir="rtl"
             className="flex-1 text-right text-base outline-none placeholder:text-gray-400 bg-transparent"
           />
         </div>

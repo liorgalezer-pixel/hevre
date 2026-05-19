@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { ChevronRight, Bell } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import LocationPicker from "@/components/LocationPicker";
 import Toggle from "@/components/Toggle";
 import { CATEGORIES } from "@/lib/categories";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 export default function NewAlertPage() {
+  return <Suspense><NewAlertContent /></Suspense>;
+}
+
+function NewAlertContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+
   const [alertName, setAlertName] = useState("");
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
@@ -21,14 +28,29 @@ export default function NewAlertPage() {
   const [holidays, setHolidays] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    if (!editId) return;
+    const alerts = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
+    const existing = alerts.find((a: { id: string }) => a.id === editId);
+    if (!existing) return;
+    setAlertName(existing.name || "");
+    setSelectedCats(existing.categories || []);
+    setSelectedStates(existing.states || []);
+    setSelectedCities(existing.cities || []);
+    setLicense(existing.license || false);
+    setCar(existing.car || false);
+    setWeekend(existing.weekend || false);
+    setHolidays(existing.holidays || false);
+  }, [editId]);
+
   const toggleCat = (id: string) =>
     setSelectedCats((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]);
 
   const handleSave = () => {
     if (selectedCats.length === 0) return;
     const alerts = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
-    alerts.push({
-      id: Date.now().toString(),
+    const payload = {
+      id: editId || Date.now().toString(),
       name: alertName || selectedCats.map(id => CATEGORIES.find(c => c.id === id)?.label).join(", "),
       categories: selectedCats,
       states: selectedStates,
@@ -37,9 +59,12 @@ export default function NewAlertPage() {
       car,
       weekend,
       holidays,
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(alerts));
+      createdAt: editId ? (alerts.find((a: { id: string }) => a.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+    };
+    const updated = editId
+      ? alerts.map((a: { id: string }) => a.id === editId ? payload : a)
+      : [...alerts, payload];
+    localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(updated));
     setSaved(true);
   };
 
@@ -49,7 +74,9 @@ export default function NewAlertPage() {
         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center">
           <Bell size={36} className="text-blue-700" strokeWidth={1.4} />
         </div>
-        <h2 className="text-xl font-black text-gray-900 text-center">ההתראה נוצרה בהצלחה!</h2>
+        <h2 className="text-xl font-black text-gray-900 text-center">
+          {editId ? "ההתראה עודכנה בהצלחה!" : "ההתראה נוצרה בהצלחה!"}
+        </h2>
         <p className="text-sm text-gray-500 text-center leading-relaxed">
           נעדכן אותך ברגע שיתפרסמו משרות חדשות שתואמות לקריטריונים שהגדרת
         </p>
@@ -71,7 +98,7 @@ export default function NewAlertPage() {
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
           <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">התראה חדשה</h1>
+        <h1 className="text-base font-bold text-gray-900">{editId ? "עריכת התראה" : "התראה חדשה"}</h1>
         <Image src="/hevre-logo.png" alt="Hevre" width={72} height={28} className="object-contain" />
       </header>
 

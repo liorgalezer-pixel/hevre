@@ -91,10 +91,13 @@ export default function PostJobStep2Page() {
     } catch {}
   }, []);
 
-  const handleContinueStep3 = () => {
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       salary, startTime, endTime, weekend, holidays, license, car, housing,
     }));
+  }, [salary, startTime, endTime, weekend, holidays, license, car, housing]);
+
+  const handleContinueStep3 = () => {
     router.push("/post/step3");
   };
 

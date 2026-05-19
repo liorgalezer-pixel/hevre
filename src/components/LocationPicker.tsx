@@ -72,7 +72,8 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
         {selectedStates.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {selectedStates.map((abbr) => {
-              const s = US_STATES.find((x) => x.abbr === abbr)!;
+              const s = US_STATES.find((x) => x.abbr === abbr);
+              if (!s) return null;
               return (
                 <span key={abbr} className="flex items-center gap-1.5 bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-full">
                   {s.he} {s.en}

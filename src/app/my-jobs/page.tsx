@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
 
 type Job = {
   id: string;
@@ -25,15 +26,45 @@ export default function MyJobsPage() {
   const [bannerVisible, setBannerVisible] = useState(true);
   const [showEmptyModal, setShowEmptyModal] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    setJobs(stored);
-    if (stored.length === 0) setShowEmptyModal(true);
-    setLoaded(true);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        setIsLoggedIn(false);
+        setLoaded(true);
+        return;
+      }
+      setIsLoggedIn(true);
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
+      setJobs(stored);
+      if (stored.length === 0) setShowEmptyModal(true);
+      setLoaded(true);
+    });
   }, []);
 
   if (!loaded) return null;
+
+  if (!isLoggedIn) return (
+    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
+          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+        </button>
+        <h1 className="text-lg font-bold text-gray-900">מודעות שפרסמתי</h1>
+        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+      </header>
+      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5 pb-24">
+        <div className="text-5xl">🔒</div>
+        <h2 className="text-xl font-black text-gray-900">יש להתחבר כדי לצפות במודעות</h2>
+        <p className="text-sm text-gray-400">התחבר או צור חשבון כדי לנהל את המשרות שלך</p>
+        <Link href="/login" className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center active:bg-blue-800 transition-colors">
+          התחבר / הרשם
+        </Link>
+      </main>
+      <BottomNav />
+    </div>
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
@@ -49,19 +80,39 @@ export default function MyJobsPage() {
 
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
 
-        {/* Yellow promo banner */}
+        {/* Banner */}
         {jobs.length > 0 && bannerVisible && (
-          <div className="bg-yellow-100 border border-yellow-200 rounded-2xl px-4 py-4 flex items-start gap-3" style={{ direction: "ltr" }}>
-            <button onClick={() => setBannerVisible(false)} className="mt-0.5 shrink-0">
-              <X size={18} className="text-yellow-600" strokeWidth={2} />
-            </button>
-            <div className="flex-1 flex items-center justify-between gap-2">
-              <span className="text-2xl">🔧</span>
-              <p className="text-sm font-bold text-yellow-800 text-right leading-snug flex-1">
-                פרסמת עבודה אחת בחינם,<br />ניתן לפרסם עוד עבודה ללא עלות
-              </p>
+          jobs.length >= 2 ? (
+            <div className="bg-blue-700 rounded-2xl px-4 py-4 flex items-center gap-3" style={{ direction: "ltr" }}>
+              <button onClick={() => setBannerVisible(false)} className="shrink-0">
+                <X size={18} className="text-blue-200" strokeWidth={2} />
+              </button>
+              <div className="flex flex-1 items-center justify-between gap-3">
+                <button
+                  onClick={() => router.push("/hevre-plus")}
+                  className="shrink-0 bg-white text-blue-700 font-black text-sm rounded-xl px-3 py-2 active:bg-blue-50"
+                >
+                  Hevre ✦
+                </button>
+                <div className="flex flex-col items-end gap-0.5 flex-1">
+                  <p className="text-sm font-black text-white text-right leading-snug">הגעת למכסת המשרות שלך</p>
+                  <p className="text-xs font-medium text-blue-200 text-right leading-snug">לפתיחת עוד משרות שדרג עכשיו</p>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-yellow-100 border border-yellow-200 rounded-2xl px-4 py-4 flex items-start gap-3" style={{ direction: "ltr" }}>
+              <button onClick={() => setBannerVisible(false)} className="mt-0.5 shrink-0">
+                <X size={18} className="text-yellow-600" strokeWidth={2} />
+              </button>
+              <div className="flex-1 flex items-center justify-between gap-2">
+                <span className="text-2xl">🔧</span>
+                <p className="text-sm font-bold text-yellow-800 text-right leading-snug flex-1">
+                  פרסמת עבודה אחת בחינם,<br />ניתן לפרסם עוד עבודה ללא עלות
+                </p>
+              </div>
+            </div>
+          )
         )}
 
         {/* Job cards */}

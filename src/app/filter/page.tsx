@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ChevronRight, Settings } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,24 @@ export default function FilterPage() {
   const [car, setCar] = useState(false);
   const [weekend, setWeekend] = useState(false);
   const [holidays, setHolidays] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.FILTERS);
+    if (stored) {
+      try {
+        const d = JSON.parse(stored);
+        if (d.categories) setSelectedCats(d.categories);
+        if (d.states) setSelectedStates(d.states);
+        if (d.cities) setSelectedCities(d.cities);
+        if (d.fromTime) setFromTime(d.fromTime);
+        if (d.toTime) setToTime(d.toTime);
+        if (typeof d.license === "boolean") setLicense(d.license);
+        if (typeof d.car === "boolean") setCar(d.car);
+        if (typeof d.weekend === "boolean") setWeekend(d.weekend);
+        if (typeof d.holidays === "boolean") setHolidays(d.holidays);
+      } catch {}
+    }
+  }, []);
 
   const hours = useMemo(() => Array.from({ length: 25 }, (_, i) => `${i.toString().padStart(2, "0")}:00`), []);
 

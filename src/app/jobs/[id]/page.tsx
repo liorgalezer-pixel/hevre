@@ -33,9 +33,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [confirmFreeze, setConfirmFreeze] = useState(false);
   const [frozen, setFrozen] = useState(false);
+  const [totalJobs, setTotalJobs] = useState(0);
 
   useEffect(() => {
     const stored: Job[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
+    setTotalJobs(stored.length);
     const found = stored.find((j) => j.id === id);
     if (found) {
       setJob(found);
@@ -89,20 +91,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </button>
       </header>
 
-      {/* Yellow promo banner */}
-      {bannerVisible && (
-        <div className="bg-yellow-400 px-4 py-4 flex items-center gap-3" style={{ direction: "ltr" }}>
-          <button onClick={() => setBannerVisible(false)} className="shrink-0">
-            <X size={18} className="text-yellow-800" strokeWidth={2} />
-          </button>
-          <div className="flex flex-1 items-center justify-between gap-2">
-            <span className="text-2xl">🔧</span>
-            <p className="text-sm font-bold text-yellow-900 text-right flex-1 leading-snug">
-              פרסמת עבודה אחת בחינם,<br />ניתן לפרסם עוד עבודה ללא עלות
-            </p>
-          </div>
-        </div>
-      )}
 
       <main className="flex-1 px-4 pt-5 pb-44 flex flex-col gap-4">
 
@@ -217,7 +205,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       {/* Upgrade button */}
       <div className="fixed bottom-16 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">
         <button onClick={() => router.push("/upgrade")} className="w-full h-14 bg-yellow-400 text-white font-black text-xl rounded-2xl active:bg-yellow-500 transition-colors">
-          שדרוג
+          שדרוג מודעה
         </button>
       </div>
 

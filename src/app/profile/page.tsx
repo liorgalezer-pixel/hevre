@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, Search, PlusCircle, LogOut } from "lucide-react";
+import { Settings, Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, Search, PlusCircle, LogOut, UserPen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +14,7 @@ const accountItems: { icon: React.ElementType; label: string; bold: boolean; hre
   { icon: Search, label: "החיפושים שלי", bold: false, href: "/my-searches", todo: true },
   { icon: Bell, label: "התראות", bold: false, href: "/alerts" },
   { icon: Mail, label: "הודעות", bold: false, href: "/messages" },
+  { icon: UserPen, label: "עדכון פרטים אישיים", bold: false, href: "/profile/edit" },
 ];
 
 
@@ -134,15 +135,17 @@ export default function ProfilePage() {
             ))}
 
             {/* Logout */}
-            <button
-              onClick={async () => { await supabase.auth.signOut(); window.location.href = "/"; }}
-              className="flex items-center justify-between px-4 py-4 w-full active:bg-red-50 border-t border-gray-100"
-              style={{ direction: "ltr" }}
-            >
-              <ChevronLeft size={18} className="text-red-400 shrink-0" />
-              <span className="flex-1 text-right text-base mr-3 text-red-500 font-semibold">התנתקות</span>
-              <LogOut size={22} className="text-red-400 shrink-0" strokeWidth={1.6} />
-            </button>
+            {isLoggedIn && (
+              <button
+                onClick={async () => { await supabase.auth.signOut(); window.location.href = "/"; }}
+                className="flex items-center justify-between px-4 py-4 w-full active:bg-red-50 border-t border-gray-100"
+                style={{ direction: "ltr" }}
+              >
+                <ChevronLeft size={18} className="text-red-400 shrink-0" />
+                <span className="flex-1 text-right text-base mr-3 text-red-500 font-semibold">התנתקות</span>
+                <LogOut size={22} className="text-red-400 shrink-0" strokeWidth={1.6} />
+              </button>
+            )}
           </div>
         </div>
 

@@ -7,39 +7,43 @@ import Image from "next/image";
 
 const PLANS = [
   {
-    id: "plus",
-    name: "מסלול משודרג פלוס",
-    price: "$25",
-    period: "ל-7 ימים",
-    color: "from-orange-400 to-amber-500",
-    badge: "הכי פופולרי",
-    features: [
-      "הקפצה אוטומטית כל 4 שעות",
-      "מיקום גבוה יותר מעל כולם",
-      "שדרוג לנראות מקסימלית",
-    ],
-    notIncluded: [],
-    cta: "רכישה ל-7 ימים",
-  },
-  {
-    id: "basic",
-    name: "הקפצה אוטומטית בלבד",
-    price: "$17",
-    period: "ל-7 ימים",
+    id: "pro",
+    name: "Hevre Pro",
+    price: "$15",
+    period: "לחודש",
     color: "from-blue-500 to-blue-700",
     badge: null,
     features: [
-      "הקפצה אוטומטית כל 4 שעות",
+      "עד 5 משרות פעילות בו-זמנית",
+      "חשיפה מוגברת בפיד",
+      "תמיכה מועדפת",
     ],
     notIncluded: [
-      "מיקום גבוה יותר מעל כולם",
-      "שדרוג לנראות מקסימלית",
+      "וי כחול ואימות עסק",
+      "פרסום משרות ללא הגבלה",
     ],
-    cta: "רכישה ל-7 ימים",
+    cta: "שדרג ל-Pro",
+  },
+  {
+    id: "plus",
+    name: "Hevre+",
+    price: "$29.99",
+    period: "לחודש",
+    color: "from-indigo-600 to-violet-600",
+    badge: "הכי שלם",
+    features: [
+      "פרסום משרות ללא הגבלה",
+      "וי כחול ואימות עסק בפרסום",
+      "חשיפה מקסימלית בפיד",
+      "תמיכה VIP 24/7",
+      "כל יתרונות Pro כלולים",
+    ],
+    notIncluded: [],
+    cta: "שדרג ל-Hevre+",
   },
 ];
 
-export default function UpgradePage() {
+export default function HevrePlusPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
   const [purchased, setPurchased] = useState(false);
@@ -50,14 +54,19 @@ export default function UpgradePage() {
   };
 
   if (purchased) {
+    const plan = PLANS.find((p) => p.id === selected)!;
     return (
       <div className="flex flex-col min-h-screen bg-white items-center justify-center px-6 gap-6" dir="rtl">
-        <div className="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center">
-          <CheckCircle2 size={52} className="text-orange-400" strokeWidth={1.5} />
+        <div className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center">
+          <CheckCircle2 size={52} className="text-blue-700" strokeWidth={1.5} />
         </div>
         <div className="text-center flex flex-col gap-2">
-          <h2 className="text-2xl font-black text-gray-900">המודעה שודרגה! 🚀</h2>
-          <p className="text-sm text-gray-500 leading-relaxed">המודעה שלך תקבל חשיפה מוגברת בתוך דקות</p>
+          <h2 className="text-2xl font-black text-gray-900">ברוך הבא ל-{plan.name}! 🎉</h2>
+          <p className="text-sm text-gray-500 leading-relaxed">
+            {plan.id === "plus"
+              ? "יש לך עכשיו פרסום ללא הגבלה + וי כחול בכל המשרות שלך"
+              : "יש לך עכשיו גישה לפרסום עד 5 משרות בו-זמנית"}
+          </p>
         </div>
         <button
           onClick={() => router.push("/my-jobs")}
@@ -77,15 +86,15 @@ export default function UpgradePage() {
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100">
           <X size={20} className="text-gray-600" strokeWidth={2.2} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">שדרוג מודעה</h1>
+        <h1 className="text-base font-bold text-gray-900">שדרג את החשבון</h1>
         <Image src="/hevre-logo.png" alt="Hevre" width={72} height={28} className="object-contain" />
       </header>
 
       <main className="flex-1 px-4 pt-6 pb-32 flex flex-col gap-5">
 
         <div className="text-center flex flex-col gap-1 mb-2">
-          <h2 className="text-2xl font-black text-gray-900">שדרג את המודעה 🚀</h2>
-          <p className="text-sm text-gray-400">הגע ליותר מועמדים במחיר מוזל</p>
+          <h2 className="text-2xl font-black text-gray-900">בחר את המסלול שלך ✦</h2>
+          <p className="text-sm text-gray-400">פרסם יותר, הגע ליותר מועמדים</p>
         </div>
 
         {PLANS.map((plan) => {
@@ -95,7 +104,7 @@ export default function UpgradePage() {
               key={plan.id}
               onClick={() => setSelected(plan.id)}
               className={`w-full rounded-3xl overflow-hidden shadow-sm border-2 transition-all text-right ${
-                isSelected ? "border-orange-400 shadow-orange-100 shadow-lg" : "border-transparent"
+                isSelected ? "border-blue-600 shadow-blue-100 shadow-lg" : "border-transparent"
               }`}
             >
               <div className={`bg-gradient-to-l ${plan.color} px-5 pt-4 pb-5`}>
@@ -106,7 +115,7 @@ export default function UpgradePage() {
                     </span>
                   ) : <div />}
                   <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-white bg-white" : "border-white/50"}`}>
-                    {isSelected && <div className="w-3 h-3 rounded-full bg-orange-400" />}
+                    {isSelected && <div className="w-3 h-3 rounded-full bg-blue-600" />}
                   </div>
                 </div>
                 <h3 className="text-xl font-black text-white mb-1">{plan.name}</h3>
@@ -134,7 +143,7 @@ export default function UpgradePage() {
           );
         })}
 
-        <p className="text-xs text-gray-400 text-center mt-1">תשלום חד-פעמי • ללא התחייבות</p>
+        <p className="text-xs text-gray-400 text-center mt-1">ניתן לבטל בכל עת • ללא התחייבות</p>
       </main>
 
       <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, ChevronRight, Plus, Trash2, MapPin, Tag } from "lucide-react";
+import { Bell, ChevronRight, Plus, Trash2, MapPin, Tag, Pencil } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
 
 type Alert = {
   id: string;
@@ -25,11 +27,16 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
-    setAlerts(stored);
-    setLoaded(true);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setIsLoggedIn(false); setLoaded(true); return; }
+      setIsLoggedIn(true);
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
+      setAlerts(stored);
+      setLoaded(true);
+    });
   }, []);
 
   const confirmDelete = () => {
@@ -41,6 +48,27 @@ export default function AlertsPage() {
   };
 
   if (!loaded) return null;
+
+  if (!isLoggedIn) return (
+    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+        </button>
+        <h1 className="text-lg font-bold text-gray-900">התראות</h1>
+        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+      </header>
+      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5 pb-24">
+        <div className="text-5xl">🔒</div>
+        <h2 className="text-xl font-black text-gray-900">יש להתחבר כדי לצפות בהתראות</h2>
+        <p className="text-sm text-gray-400">התחבר או צור חשבון כדי לנהל את ההתראות שלך</p>
+        <Link href="/login" className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center active:bg-blue-800 transition-colors">
+          התחבר / הרשם
+        </Link>
+      </main>
+      <BottomNav />
+    </div>
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">
@@ -89,12 +117,20 @@ export default function AlertsPage() {
             {alerts.map((alert) => (
               <div key={alert.id} className="bg-white rounded-2xl px-4 py-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
-                  <button
-                    onClick={() => setConfirmDeleteId(alert.id)}
-                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 active:bg-red-100 shrink-0"
-                  >
-                    <Trash2 size={16} className="text-red-400" strokeWidth={2} />
-                  </button>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => router.push(`/alerts/new?edit=${alert.id}`)}
+                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 active:bg-blue-100"
+                    >
+                      <Pencil size={15} className="text-blue-600" strokeWidth={2} />
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(alert.id)}
+                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 active:bg-red-100"
+                    >
+                      <Trash2 size={16} className="text-red-400" strokeWidth={2} />
+                    </button>
+                  </div>
                   <div className="flex-1 text-right">
                     <p className="text-base font-black text-gray-900">{alert.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">

@@ -7,6 +7,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/categories";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
+import { X } from "lucide-react";
 
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_1;
 
@@ -23,6 +25,10 @@ function PostJobContent() {
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -30,27 +36,51 @@ function PostJobContent() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [otherText, setOtherText] = useState("");
   const [description, setDescription] = useState("");
+  const [requirements, setRequirements] = useState<string[]>([""]);
+
+  const addRequirement = () => setRequirements((prev) => [...prev, ""]);
+  const updateRequirement = (i: number, val: string) =>
+    setRequirements((prev) => prev.map((r, idx) => (idx === i ? val : r)));
+  const removeRequirement = (i: number) =>
+    setRequirements((prev) => prev.filter((_, idx) => idx !== i));
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) setShowAuthModal(true);
+      setAuthChecked(true);
+    });
+  }, []);
 
   useEffect(() => {
     const isNew = searchParams.get("new") === "1";
     if (isNew) {
+      const existingJobs = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
+      if (existingJobs.length >= 2) {
+        setShowLimitModal(true);
+        setDataLoaded(true);
+        return;
+      }
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(STORAGE_KEYS.POST_STEP_2);
       localStorage.removeItem(STORAGE_KEYS.POST_STEP_3);
-      return;
+      router.replace("/post");
+    } else {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const d = JSON.parse(saved);
+          if (d.jobTitle) setJobTitle(d.jobTitle);
+          if (d.companyName) setCompanyName(d.companyName);
+          if (d.companyAddress) setCompanyAddress(d.companyAddress);
+          if (d.selectedCategories) setSelectedCategories(d.selectedCategories);
+          if (d.otherText) setOtherText(d.otherText);
+          if (d.description) setDescription(d.description);
+          if (d.logoPreview) setLogoPreview(d.logoPreview);
+          if (d.requirements) setRequirements(d.requirements);
+        } catch {}
+      }
     }
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-    try {
-      const d = JSON.parse(saved);
-      if (d.jobTitle) setJobTitle(d.jobTitle);
-      if (d.companyName) setCompanyName(d.companyName);
-      if (d.companyAddress) setCompanyAddress(d.companyAddress);
-      if (d.selectedCategories) setSelectedCategories(d.selectedCategories);
-      if (d.otherText) setOtherText(d.otherText);
-      if (d.description) setDescription(d.description);
-      if (d.logoPreview) setLogoPreview(d.logoPreview);
-    } catch {}
+    setDataLoaded(true);
   }, [searchParams]);
 
   const toggleCategory = (id: string) => {
@@ -67,10 +97,14 @@ function PostJobContent() {
     reader.readAsDataURL(file);
   };
 
-  const handleContinue = () => {
+  useEffect(() => {
+    if (!dataLoaded) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      jobTitle, companyName, companyAddress, selectedCategories, otherText, description, logoPreview,
+      jobTitle, companyName, companyAddress, selectedCategories, otherText, description, logoPreview, requirements,
     }));
+  }, [jobTitle, companyName, companyAddress, selectedCategories, otherText, description, logoPreview, requirements, dataLoaded]);
+
+  const handleContinue = () => {
     router.push("/post/step2");
   };
 
@@ -198,6 +232,38 @@ function PostJobContent() {
           />
         </div>
 
+        {/* Requirements */}
+        <div className="flex flex-col gap-2">
+          <label className="text-base font-bold text-gray-900 text-right">דרישות תפקיד</label>
+          <div className="flex flex-col gap-2">
+            {requirements.map((req, i) => (
+              <div key={i} className="flex items-center gap-2" style={{ direction: "rtl" }}>
+                <span className="text-green-500 shrink-0 text-lg">✓</span>
+                <input
+                  type="text"
+                  value={req}
+                  placeholder="הוסף דרישה..."
+                  onChange={(e) => updateRequirement(i, e.target.value)}
+                  dir="rtl"
+                  className="flex-1 h-11 rounded-xl border border-gray-200 bg-white px-3 text-right text-sm outline-none focus:border-blue-500 placeholder:text-gray-300"
+                />
+                {requirements.length > 1 && (
+                  <button onClick={() => removeRequirement(i)} className="w-8 h-8 flex items-center justify-center text-gray-300 active:text-red-400 shrink-0">
+                    <X size={16} strokeWidth={2} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={addRequirement}
+            disabled={requirements.length >= 6 || requirements[requirements.length - 1].trim() === ""}
+            className="self-start flex items-center gap-1.5 text-sm font-bold mt-1 disabled:opacity-30 text-blue-700 active:opacity-70"
+          >
+            <span className="text-lg leading-none">+</span> הוסף דרישה
+          </button>
+        </div>
+
       </main>
 
       {/* Continue button */}
@@ -209,6 +275,65 @@ function PostJobContent() {
           המשך
         </button>
       </div>
+
+      {/* Auth modal */}
+      {authChecked && showAuthModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+            <div className="bg-white rounded-3xl w-full px-6 py-8 flex flex-col gap-5 shadow-xl">
+              <div className="flex justify-end">
+                <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200">
+                  <X size={18} className="text-gray-600" strokeWidth={2} />
+                </button>
+              </div>
+              <div className="text-4xl text-center">🔒</div>
+              <h2 className="text-lg font-black text-gray-900 text-center leading-snug">
+                כדי לפרסם מודעה יש להתחבר
+              </h2>
+              <p className="text-sm text-gray-500 text-center leading-relaxed">
+                התחבר או צור חשבון כדי להמשיך
+              </p>
+              <button
+                onClick={() => router.push("/login")}
+                className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center active:bg-blue-800 transition-colors"
+              >
+                התחבר / הרשם
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Job limit modal */}
+      {showLimitModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+            <div className="bg-white rounded-3xl w-full px-6 py-8 flex flex-col gap-5 shadow-xl">
+              <div className="flex justify-end">
+                <button onClick={() => router.back()} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200">
+                  <X size={18} className="text-gray-600" strokeWidth={2} />
+                </button>
+              </div>
+              <div className="text-4xl text-center">🚀</div>
+              <h2 className="text-lg font-black text-gray-900 text-center leading-snug">
+                הגעת למכסת המשרות שלך
+              </h2>
+              <p className="text-sm text-gray-500 text-center leading-relaxed">
+                בגרסה החינמית אפשר לפרסם עד 2 מודעות.<br />
+                שדרג ל-<span className="font-black text-blue-700">Hevre+</span> לפרסום ללא הגבלה.
+              </p>
+              <button
+                onClick={() => router.push("/hevre-plus")}
+                className="w-full h-14 bg-blue-700 text-white font-black text-base rounded-2xl flex items-center justify-center active:bg-blue-800 transition-colors"
+              >
+                שדרג ל-Hevre+ ✦
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
