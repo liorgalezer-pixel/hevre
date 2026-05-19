@@ -135,7 +135,7 @@ export default function ProfilePage() {
 
             {/* Logout */}
             <button
-              onClick={async () => { await supabase.auth.signOut(); window.location.href = "/login"; }}
+              onClick={async () => { await supabase.auth.signOut(); window.location.href = "/"; }}
               className="flex items-center justify-between px-4 py-4 w-full active:bg-red-50 border-t border-gray-100"
               style={{ direction: "ltr" }}
             >
