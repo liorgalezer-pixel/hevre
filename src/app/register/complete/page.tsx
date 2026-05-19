@@ -1,0 +1,239 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { ChevronRight, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+
+const defaultLanguages = ["עברית", "אנגלית", "ערבית", "ספרדית", "אחר"];
+
+export default function RegisterCompletePage() {
+  const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setEmail(localStorage.getItem("reg_email") || "");
+    setFirstName(localStorage.getItem("reg_first_name") || "");
+    setLastName(localStorage.getItem("reg_last_name") || "");
+  }, []);
+  const [birthDate, setBirthDate] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("ישראל");
+  const [intlLicense, setIntlLicense] = useState(false);
+  const [licenseCity, setLicenseCity] = useState("");
+  const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
+  const [customLang, setCustomLang] = useState("");
+
+  const handleComplete = async () => {
+    setLoading(true);
+    setError("");
+
+    const storedEmail = localStorage.getItem("reg_email") || email;
+    // Password was stored in sessionStorage (not localStorage) to avoid disk persistence
+    const storedPassword = sessionStorage.getItem("reg_password") || "";
+
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: storedEmail,
+      password: storedPassword,
+    });
+
+    if (signUpError || !signUpData.user) {
+      setError(signUpError ? `שגיאה: ${signUpError.message}` : "לא התקבל משתמש - נסה שוב");
+      setLoading(false);
+      return;
+    }
+
+    const { error: profileError } = await supabase.from("profiles").insert({
+      id: signUpData.user.id,
+      email: storedEmail,
+      first_name: firstName,
+      last_name: lastName,
+      age: parseInt(localStorage.getItem("reg_age") || "0"),
+      gender: localStorage.getItem("reg_gender") || "",
+      phone,
+      birth_date: birthDate,
+      city,
+      country,
+      intl_license: intlLicense,
+      languages: selectedLangs.filter(l => l !== "__other__"),
+    });
+
+    if (profileError) { setError(`שגיאה: ${profileError.message}`); setLoading(false); return; }
+
+    ["reg_email","reg_first_name","reg_last_name","reg_age","reg_gender"].forEach(k => localStorage.removeItem(k));
+    sessionStorage.removeItem("reg_password");
+    router.push("/");
+  };
+
+  const toggleLang = (lang: string) => {
+    setSelectedLangs((prev) =>
+      prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]
+    );
+  };
+
+  const addCustomLang = () => {
+    const trimmed = customLang.trim();
+    if (trimmed && !selectedLangs.includes(trimmed)) {
+      setSelectedLangs((prev) => [...prev, trimmed]);
+    }
+    setCustomLang("");
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-white" dir="rtl">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-gray-100">
+        <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600">
+          <ChevronRight size={20} strokeWidth={2} />
+        </button>
+        <h1 className="text-base font-bold text-gray-900">המשך פרטים אישיים</h1>
+        <button onClick={() => router.push("/")} className="text-sm text-gray-400 font-medium">Cancel</button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-5 pb-32">
+
+        {/* Personal fields */}
+        <div className="flex flex-col gap-3 mb-6">
+          {[
+            { label: "שם פרטי", value: firstName, setter: setFirstName, placeholder: "אבי", type: "text" },
+            { label: "שם משפחה", value: lastName, setter: setLastName, placeholder: "כהן", type: "text" },
+            { label: "טלפון נייד", value: phone, setter: setPhone, placeholder: "050-1234567", type: "tel" },
+            { label: "אימייל", value: email, setter: setEmail, placeholder: "avi@email.com", type: "email" },
+            { label: "תאריך לידה", value: birthDate, setter: setBirthDate, placeholder: "01/01/1990", type: "text" },
+          ].map(({ label, value, setter, placeholder, type }) => (
+            <div key={label}>
+              <label className="text-sm text-gray-600 font-medium block text-right mb-1">{label}</label>
+              <input
+                type={type}
+                value={value}
+                placeholder={placeholder}
+                onChange={(e) => setter(e.target.value)}
+                dir="rtl"
+                className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+              />
+            </div>
+          ))}
+
+          {/* Country */}
+          <div>
+            <label className="text-sm text-gray-600 font-medium block text-right mb-1">מדינה</label>
+            <input
+              type="text"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="הזן מדינה"
+              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+            />
+          </div>
+
+          {/* City */}
+          <div>
+            <label className="text-sm text-gray-600 font-medium block text-right mb-1">עיר</label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="הזן עיר"
+              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+            />
+          </div>
+
+          {/* International license */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה בינלאומי</span>
+            <button
+              onClick={() => setIntlLicense(!intlLicense)}
+              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${intlLicense ? "bg-blue-600" : "bg-gray-300"}`}
+            >
+              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${intlLicense ? "right-0.5" : "left-0.5"}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Languages */}
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-gray-900 text-right mb-1">באילו שפות אתה מדבר?</h2>
+          <p className="text-sm text-gray-400 text-right mb-4">שפות שאתה מדבר ברמה סבירה</p>
+
+          <div className="flex flex-wrap gap-2 justify-end mb-3">
+            {defaultLanguages.map((lang) => (
+              <button
+                key={lang}
+                onClick={() => {
+                  if (lang === "אחר") {
+                    setCustomLang("");
+                    setSelectedLangs((prev) =>
+                      prev.includes("__other__") ? prev.filter(l => l !== "__other__") : [...prev, "__other__"]
+                    );
+                  } else {
+                    toggleLang(lang);
+                  }
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                  (lang === "אחר" ? selectedLangs.includes("__other__") : selectedLangs.includes(lang))
+                    ? "bg-gray-700 text-white border-gray-700"
+                    : "bg-white text-gray-700 border-gray-300"
+                }`}
+              >
+                {lang}
+              </button>
+            ))}
+            {selectedLangs.filter(l => !defaultLanguages.includes(l) && l !== "__other__").map((lang) => (
+              <button
+                key={lang}
+                onClick={() => toggleLang(lang)}
+                className="px-4 py-2 rounded-full text-sm font-medium bg-gray-700 text-white border border-gray-700 flex items-center gap-1"
+              >
+                {lang}
+                <X size={12} />
+              </button>
+            ))}
+          </div>
+
+          {/* Custom language input – shown only when "אחר" is selected */}
+          {selectedLangs.includes("__other__") && (
+            <div className="flex items-center border border-gray-300 rounded-2xl px-4 h-11 gap-2 mb-2">
+              <button onClick={addCustomLang} className="text-gray-400">
+                <Plus size={18} />
+              </button>
+              <input
+                type="text"
+                value={customLang}
+                onChange={(e) => setCustomLang(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCustomLang()}
+                placeholder="הוסף שפה נוספת..."
+                autoFocus
+                className="flex-1 text-right text-sm outline-none bg-transparent placeholder:text-gray-300"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Disclaimer */}
+        <p className="text-xs text-gray-500 text-center mb-5">
+          על ידי לחיצה, אתה מאשר את הפרטים ואת{" "}
+          <Link href="/terms" className="text-blue-600 underline">התקנון</Link>
+          {" "}ומסיים את ההרשמה.
+        </p>
+
+        {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+
+        {/* Submit button */}
+        <button
+          onClick={handleComplete}
+          disabled={loading}
+          className={`w-full font-bold text-lg rounded-full h-14 transition-colors text-white ${loading ? "bg-gray-300" : "bg-yellow-400 active:bg-yellow-500"}`}
+        >
+          {loading ? "שומר..." : "כניסה וסיום"}
+        </button>
+      </div>
+    </div>
+  );
+}
