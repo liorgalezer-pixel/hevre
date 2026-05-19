@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronRight, ImageIcon } from "lucide-react";
 import Image from "next/image";
@@ -11,6 +11,14 @@ import { STORAGE_KEYS } from "@/lib/storage-keys";
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_1;
 
 export default function PostJobPage() {
+  return (
+    <Suspense>
+      <PostJobContent />
+    </Suspense>
+  );
+}
+
+function PostJobContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
