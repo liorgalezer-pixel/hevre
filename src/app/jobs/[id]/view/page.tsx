@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import posthog from "posthog-js";
 import { ChevronRight, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, CalendarDays, Send, Heart, Share2, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { MOCK_JOBS } from "@/lib/mock-jobs";
@@ -16,6 +17,7 @@ type Application = {
   location: string;
   date: string;
   logo: string;
+  status?: "pending" | "approved";
 };
 
 export default function JobViewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,13 +31,20 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [isApproved, setIsApproved] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setIsLoggedIn(!!data.session);
     });
     const apps: Application[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_APPLICATIONS) || "[]");
-    setAlreadyApplied(apps.some((a) => a.jobId === id));
+    const myApp = apps.find((a) => a.jobId === id);
+    if (myApp) {
+      setAlreadyApplied(true);
+      setIsApproved(myApp.status === "approved");
+    }
+    // Track job view
+    if (job) posthog.capture("job_viewed", { job_id: id, job_title: job.title, company: job.company });
   }, [id]);
 
   const job = MOCK_JOBS.find((j) => j.id === id);
@@ -76,6 +85,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
         logo: job.company[0],
       });
       localStorage.setItem(STORAGE_KEYS.MY_APPLICATIONS, JSON.stringify(apps));
+      posthog.capture("job_applied", { job_id: id, job_title: job.title, company: job.company });
     }
     setApplyOpen(false);
     setSubmitted(true);
@@ -176,7 +186,11 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
 
       {/* Apply button */}
       <div className="fixed bottom-16 right-0 left-0 bg-white border-t border-gray-100 px-4 py-3">
-        {alreadyApplied || submitted ? (
+        {isApproved ? (
+          <div className="w-full h-14 bg-green-50 border border-green-200 text-green-600 font-black text-base rounded-2xl flex items-center justify-center gap-2">
+            ✓ מועמדות אושרה!
+          </div>
+        ) : alreadyApplied || submitted ? (
           <div className="w-full h-14 bg-orange-50 border border-orange-200 text-orange-500 font-black text-base rounded-2xl flex items-center justify-center gap-2">
             ⏳ מועמדות בהמתנה
           </div>

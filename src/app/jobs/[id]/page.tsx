@@ -176,6 +176,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           ))}
         </div>
 
+        {/* Approve applicant (demo) */}
+        <div className="mt-3 border border-dashed border-gray-200 rounded-2xl px-4 py-4 flex flex-col gap-2">
+          <p className="text-sm font-bold text-gray-700 text-right">מועמדים</p>
+          <p className="text-xs text-gray-400 text-right">לחץ לאישור מועמדות לדוגמא</p>
+          <button
+            onClick={() => {
+              const apps = JSON.parse(localStorage.getItem("hevre_my_applications") || "[]");
+              const updated = apps.map((a: { jobId: string; status?: string }) =>
+                a.jobId === id ? { ...a, status: "approved" } : a
+              );
+              localStorage.setItem("hevre_my_applications", JSON.stringify(updated));
+              alert("המועמדות אושרה!");
+            }}
+            className="w-full h-11 bg-green-500 text-white font-bold text-sm rounded-xl active:bg-green-600"
+          >
+            ✓ אשר מועמד
+          </button>
+        </div>
+
         {/* Meta */}
         <div className="text-right text-sm text-gray-400 mt-1 flex flex-col gap-0.5">
           {createdDate && <p>מועד יצירה: {createdDate}</p>}

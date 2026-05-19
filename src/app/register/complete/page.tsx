@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import posthog from "posthog-js";
 import { ChevronRight, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -70,6 +71,8 @@ export default function RegisterCompletePage() {
 
     ["reg_email","reg_first_name","reg_last_name","reg_age","reg_gender"].forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem("reg_password");
+    posthog.identify(signUpData.user.id, { email: storedEmail, first_name: firstName, last_name: lastName });
+    posthog.capture("user_registered", { city, country });
     router.push("/");
   };
 

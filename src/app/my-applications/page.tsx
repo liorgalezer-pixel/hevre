@@ -17,6 +17,7 @@ type Application = {
   location: string;
   date: string;
   logo: string;
+  status?: "pending" | "approved";
 };
 
 function Tag({ children }: { children: React.ReactNode }) {
@@ -32,14 +33,16 @@ export default function MyApplicationsPage() {
   const [pendingOpen, setPendingOpen] = useState(true);
   const [approvedOpen, setApprovedOpen] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [pending, setPending] = useState<Application[]>([]);
-  const approved: Application[] = [];
+  const [applications, setApplications] = useState<Application[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setIsLoggedIn(!!user));
     const apps: Application[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_APPLICATIONS) || "[]");
-    setPending(apps);
+    setApplications(apps);
   }, []);
+
+  const pending = applications.filter(a => !a.status || a.status === "pending");
+  const approved = applications.filter(a => a.status === "approved");
 
   if (isLoggedIn === null) return null;
 

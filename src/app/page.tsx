@@ -27,6 +27,7 @@ export default function HomePage() {
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
+  const [approvedApps, setApprovedApps] = useState<{ jobId: string; title: string; company: string }[]>([]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -41,6 +42,8 @@ export default function HomePage() {
     if (stored) {
       try { setFilters(JSON.parse(stored)); } catch {}
     }
+    const apps = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_APPLICATIONS) || "[]");
+    setApprovedApps(apps.filter((a: { status?: string }) => a.status === "approved"));
   }, []);
 
   const clearFilters = () => {
@@ -66,14 +69,31 @@ export default function HomePage() {
               <MessageCircle size={26} className="text-gray-700" strokeWidth={1.8} />
             </button>
             <div ref={bellRef} className="relative">
-              <button onClick={() => setBellOpen((v) => !v)} className="w-11 h-11 flex items-center justify-center">
+              <button onClick={() => setBellOpen((v) => !v)} className="relative w-11 h-11 flex items-center justify-center">
                 <Bell size={26} className="text-gray-700" strokeWidth={1.8} />
+                {approvedApps.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full" />
+                )}
               </button>
               {bellOpen && (
                 <div className="absolute top-12 right-0 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 w-72 p-4 flex flex-col gap-2" dir="rtl">
                   <p className="text-sm font-bold text-gray-700 mb-1">התראות</p>
                   <div className="flex flex-col gap-2 text-sm text-gray-500">
-                    <p className="bg-gray-50 rounded-xl px-3 py-2.5">אין הודעות חדשות כרגע</p>
+                    {approvedApps.length === 0 ? (
+                      <p className="bg-gray-50 rounded-xl px-3 py-2.5">אין הודעות חדשות כרגע</p>
+                    ) : (
+                      approvedApps.map((app) => (
+                        <button
+                          key={app.jobId}
+                          onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
+                          className="bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-green-100"
+                        >
+                          <span className="text-green-700 font-bold text-xs">✓ מועמדות אושרה!</span>
+                          <span className="text-gray-700 font-medium">{app.title}</span>
+                          <span className="text-gray-400 text-xs">{app.company}</span>
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

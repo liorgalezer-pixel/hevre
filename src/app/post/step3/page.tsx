@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import posthog from "posthog-js";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -54,6 +55,7 @@ export default function PostJobStep3Page() {
     };
     const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
     localStorage.setItem(STORAGE_KEYS.MY_JOBS, JSON.stringify([newJob, ...existing]));
+    posthog.capture("job_posted", { job_title: newJob.title, company: newJob.companyName, categories: newJob.categories });
 
     setSuccess(true);
   };
