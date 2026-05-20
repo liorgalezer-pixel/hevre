@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useRef } from "react";
-import { ChevronRight, Send } from "lucide-react";
+import { ChevronRight, Send, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -18,8 +18,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [myId, setMyId] = useState<string | null>(null);
+  const [myFirstName, setMyFirstName] = useState("");
+  const [myPhone, setMyPhone] = useState("");
+  const [isEmployer, setIsEmployer] = useState(false);
   const [otherName, setOtherName] = useState("שיחה");
   const [jobTitle, setJobTitle] = useState("");
+  const [waModalOpen, setWaModalOpen] = useState(false);
+  const [waPhone, setWaPhone] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,19 +33,32 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       if (!user) { router.push("/login"); return; }
       setMyId(user.id);
 
+      // Load my profile
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("first_name, phone")
+        .eq("id", user.id)
+        .single();
+      if (myProfile) {
+        setMyFirstName(myProfile.first_name || "");
+        setMyPhone(myProfile.phone || "");
+        setWaPhone(myProfile.phone || "");
+      }
+
       // Load conversation metadata
-      const { data: conv } = await supabase
+      const { data: convData } = await supabase
         .from("conversations")
         .select("employer_id, applicant_id, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name)")
         .eq("id", conversationId)
         .single();
 
-      if (conv) {
+      if (convData) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const c = conv as any;
+        const c = convData as any;
         setJobTitle(c.jobs?.title || "משרה");
-        const isEmployer = c.employer_id === user.id;
-        setOtherName(isEmployer ? (c.applicant?.first_name || "מועמד") : (c.employer?.first_name || "מעסיק"));
+        const emp = c.employer_id === user.id;
+        setIsEmployer(emp);
+        setOtherName(emp ? (c.applicant?.first_name || "מועמד") : (c.employer?.first_name || "מעסיק"));
       }
 
       // Load messages
@@ -51,7 +69,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         .order("created_at", { ascending: true });
       setMessages(msgs || []);
     })();
-  }, [conversationId, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId]);
 
   // Realtime subscription
   useEffect(() => {
@@ -69,7 +88,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     return () => { supabase.removeChannel(channel); };
   }, [conversationId]);
 
-  // Scroll to bottom on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -89,6 +107,24 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
+  // Send WhatsApp link as a chat message
+  const handleSendWhatsApp = async () => {
+    if (!myId) return;
+    // Normalize phone: remove non-digits
+    const digits = waPhone.replace(/\D/g, "");
+    if (!digits) return;
+    const name = myFirstName || "אני";
+    const waText = encodeURIComponent(`היי זה ${name} הגעתי אליך מחבר'ה`);
+    const link = `https://wa.me/${digits}?text=${waText}`;
+    const msgContent = `📱 לחץ לשיחה בוואטסאפ: ${link}`;
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: myId,
+      content: msgContent,
+    });
+    setWaModalOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50" dir="rtl">
 
@@ -106,6 +142,17 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         </div>
       </header>
 
+      {/* WhatsApp banner — employer only */}
+      {isEmployer && (
+        <button
+          onClick={() => setWaModalOpen(true)}
+          className="mx-4 mt-3 flex items-center justify-center gap-2 bg-green-500 text-white text-sm font-bold rounded-2xl px-4 py-3 active:bg-green-600 shrink-0"
+        >
+          <span className="text-lg">📱</span>
+          שלח קישור וואטסאפ למועמד
+        </button>
+      )}
+
       {/* Messages */}
       <main className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
         {messages.length === 0 && (
@@ -115,18 +162,37 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         )}
         {messages.map((msg) => {
           const isMe = msg.sender_id === myId;
+          // Detect WhatsApp link messages
+          const isWaLink = msg.content.startsWith("📱 לחץ לשיחה בוואטסאפ:");
+          const waUrl = isWaLink ? msg.content.replace("📱 לחץ לשיחה בוואטסאפ: ", "") : null;
+
           return (
             <div key={msg.id} className={`flex ${isMe ? "justify-start" : "justify-end"}`}>
-              <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                isMe
-                  ? "bg-blue-700 text-white rounded-tr-sm"
-                  : "bg-white text-gray-800 shadow-sm rounded-tl-sm"
-              }`}>
-                <p>{msg.content}</p>
-                <p className={`text-[10px] mt-1 ${isMe ? "text-blue-200" : "text-gray-400"} text-left`}>
-                  {new Date(msg.created_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
-                </p>
-              </div>
+              {isWaLink && waUrl ? (
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="max-w-[75%] bg-green-500 text-white px-4 py-3 rounded-2xl flex flex-col gap-1 active:bg-green-600"
+                >
+                  <span className="text-sm font-bold">📱 פתח וואטסאפ</span>
+                  <span className="text-xs text-green-100">לחץ לשיחה ישירה</span>
+                  <p className={`text-[10px] mt-0.5 text-green-200 ${isMe ? "text-left" : "text-right"}`}>
+                    {new Date(msg.created_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </a>
+              ) : (
+                <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  isMe
+                    ? "bg-blue-700 text-white rounded-tr-sm"
+                    : "bg-white text-gray-800 shadow-sm rounded-tl-sm"
+                }`}>
+                  <p>{msg.content}</p>
+                  <p className={`text-[10px] mt-1 ${isMe ? "text-blue-200" : "text-gray-400"} text-left`}>
+                    {new Date(msg.created_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
@@ -134,7 +200,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       </main>
 
       {/* Input */}
-      <div className="bg-white border-t border-gray-100 px-4 py-3 flex items-end gap-2 shrink-0 pb-safe">
+      <div className="bg-white border-t border-gray-100 px-4 py-3 flex items-end gap-2 shrink-0">
         <button
           onClick={handleSend}
           disabled={!text.trim()}
@@ -153,6 +219,60 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           style={{ minHeight: "44px" }}
         />
       </div>
+
+      {/* WhatsApp modal */}
+      {waModalOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setWaModalOpen(false)} />
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <div className="bg-white rounded-t-3xl w-full px-5 pt-5 pb-10 flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-1">
+                <button onClick={() => setWaModalOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100">
+                  <X size={18} className="text-gray-600" strokeWidth={2} />
+                </button>
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className="w-9" />
+              </div>
+
+              <div className="text-center">
+                <div className="text-4xl mb-2">📱</div>
+                <h2 className="text-lg font-black text-gray-900">שלח קישור וואטסאפ</h2>
+                <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                  המועמד יקבל קישור לפתיחת שיחה איתך בוואטסאפ עם הודעה מובנית
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-gray-700 text-right">מספר הוואטסאפ שלך</label>
+                <input
+                  type="tel"
+                  value={waPhone}
+                  onChange={(e) => setWaPhone(e.target.value)}
+                  placeholder="לדוגמה: 972501234567"
+                  dir="ltr"
+                  className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-left text-base outline-none focus:border-green-400"
+                />
+                <p className="text-xs text-gray-400 text-right">כולל קידומת מדינה ללא + (למשל: 972 לישראל, 1 לארה&quot;ב)</p>
+              </div>
+
+              <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
+                <p className="text-xs text-gray-500 text-right mb-1">ההודעה שתשלח:</p>
+                <p className="text-sm font-medium text-gray-800 text-right">
+                  &ldquo;היי זה {myFirstName || "שמך"} הגעתי אליך מחבר&apos;ה&rdquo;
+                </p>
+              </div>
+
+              <button
+                onClick={handleSendWhatsApp}
+                disabled={!waPhone.replace(/\D/g, "")}
+                className="w-full h-14 bg-green-500 text-white font-black text-base rounded-2xl active:bg-green-600 disabled:opacity-40 transition-opacity"
+              >
+                שלח קישור למועמד
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
