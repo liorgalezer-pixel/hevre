@@ -1,71 +1,139 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { ChevronRight, Search, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, Home, PlusCircle, User } from "lucide-react";
+import { ChevronRight, Search, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, Home, PlusCircle, User, ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
 
 type Job = {
   id: string;
   title: string;
   salary: string;
-  companyAddress: string;
+  company_address: string;
+  job_states: string[];
+  job_cities: string[];
   categories: string[];
-  logoPreview: string | null;
+  logo_url: string | null;
   active: boolean;
   weekend: boolean;
   holidays: boolean;
   license: boolean;
   car: boolean;
   housing: boolean;
-  startTime: string;
-  endTime: string;
-  createdAt: string;
+  start_time: string;
+  end_time: string;
+  created_at: string;
+  q1?: string;
+  q2?: string;
+  q3?: string;
+};
+
+type Applicant = {
+  id: string;
+  applicant_id: string;
+  status: string;
+  answers: string[];
+  about_self: string;
+  name: string;
+  age: number | null;
+  gender: string;
+  license: boolean;
+  languages: string[];
+  avatar_url: string | null;
 };
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
   const [job, setJob] = useState<Job | null>(null);
-  const [bannerVisible, setBannerVisible] = useState(true);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [confirmFreeze, setConfirmFreeze] = useState(false);
   const [frozen, setFrozen] = useState(false);
-  const [totalJobs, setTotalJobs] = useState(0);
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [viewCount, setViewCount] = useState(0);
+  const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
 
-  useEffect(() => {
-    const stored: Job[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    setTotalJobs(stored.length);
-    const found = stored.find((j) => j.id === id);
-    if (found) {
-      setJob(found);
-      setFrozen(!!(found as Job & { frozen?: boolean }).frozen);
-    }
-  }, [id]);
-
-  const updateJob = (updates: Partial<Job & { frozen?: boolean }>) => {
-    const stored: (Job & { frozen?: boolean })[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    const updated = stored.map((j) => j.id === id ? { ...j, ...updates } : j);
-    localStorage.setItem(STORAGE_KEYS.MY_JOBS, JSON.stringify(updated));
+  const loadApplicants = async () => {
+    const { data } = await supabase
+      .from("applications")
+      .select("id, status, applicant_id, answers, about_self, profiles(first_name, last_name, age, gender, intl_license, languages)")
+      .eq("job_id", id)
+      .order("created_at", { ascending: false });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setApplicants((data || []).map((a: any) => ({
+      id: a.id,
+      applicant_id: a.applicant_id,
+      status: a.status || "pending",
+      answers: a.answers || [],
+      about_self: a.about_self || "",
+      name: a.profiles?.first_name || "מועמד",
+      age: a.profiles?.age || null,
+      gender: a.profiles?.gender || "",
+      license: !!a.profiles?.intl_license,
+      languages: a.profiles?.languages || [],
+      avatar_url: null,
+    })));
   };
 
-  const handleFreeze = () => {
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: found } = await supabase
+        .from("jobs").select("*")
+        .eq("id", id).eq("created_by", user.id).single();
+      if (found) {
+        setJob(found as unknown as Job);
+        setFrozen(!!found.frozen);
+      }
+      const { count: vCount } = await supabase
+        .from("job_views").select("*", { count: "exact", head: true })
+        .eq("job_id", id);
+      setViewCount(vCount || 0);
+      await loadApplicants();
+    })();
+  }, [id]);
+
+  const handleFreeze = async () => {
+    await supabase.from("jobs").update({ frozen: true }).eq("id", id);
     setFrozen(true);
-    updateJob({ frozen: true });
     setConfirmFreeze(false);
   };
 
-  const handleUnfreeze = () => {
+  const handleUnfreeze = async () => {
+    await supabase.from("jobs").update({ frozen: false }).eq("id", id);
     setFrozen(false);
-    updateJob({ frozen: false });
   };
 
-  const handleRemove = () => {
-    const stored: Job[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    localStorage.setItem(STORAGE_KEYS.MY_JOBS, JSON.stringify(stored.filter((j) => j.id !== id)));
+  const handleRemove = async () => {
+    await supabase.from("jobs").delete().eq("id", id);
     router.push("/my-jobs");
+  };
+
+  const handleApprove = async (applicant: Applicant) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("applications").update({ status: "approved" }).eq("id", applicant.id);
+    // Create or get conversation
+    const { data: conv } = await supabase
+      .from("conversations")
+      .upsert(
+        { job_id: id, employer_id: user.id, applicant_id: applicant.applicant_id },
+        { onConflict: "job_id,applicant_id" }
+      )
+      .select("id")
+      .single();
+    setSelectedApplicant(null);
+    if (conv?.id) router.push(`/messages/${conv.id}`);
+    else await loadApplicants();
+  };
+
+  const handleReject = async (applicant: Applicant) => {
+    await supabase.from("applications").update({ status: "rejected" }).eq("id", applicant.id);
+    setSelectedApplicant(null);
+    await loadApplicants();
   };
 
   if (!job) return (
@@ -75,7 +143,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     </div>
   );
 
-  const createdDate = job.createdAt ? new Date(job.createdAt).toLocaleDateString("he-IL") : "";
+  const createdDate = job.created_at ? new Date(job.created_at).toLocaleDateString("he-IL") : "";
+  const pending = applicants.filter(a => a.status === "pending");
+  const approved = applicants.filter(a => a.status === "approved");
+  const questions = [job.q1, job.q2, job.q3].filter(Boolean) as string[];
 
   return (
     <div className="flex flex-col min-h-screen bg-white" dir="rtl">
@@ -91,17 +162,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </button>
       </header>
 
-
       <main className="flex-1 px-4 pt-5 pb-44 flex flex-col gap-4">
 
         {/* Title + logo */}
         <div className="flex items-center justify-between gap-3">
           <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-            {job.logoPreview ? (
-              <Image src={job.logoPreview} alt="לוגו" width={48} height={48} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-lg font-black text-gray-400">H</span>
-            )}
+            {job.logo_url
+              ? <Image src={job.logo_url} alt="לוגו" width={48} height={48} className="w-full h-full object-cover" />
+              : <span className="text-lg font-black text-gray-400">H</span>}
           </div>
           <h1 className="text-xl font-black text-gray-900 text-right leading-snug flex-1">{job.title}</h1>
         </div>
@@ -112,18 +180,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             <span className={`w-2 h-2 rounded-full inline-block ${frozen ? "bg-red-400" : "bg-green-400"}`} />
             {frozen ? "קפוא" : "פעיל"}
           </span>
-          <span className="text-sm font-medium text-white bg-gray-700 rounded-lg px-3 py-1">
-            מודעה בסיסית
-          </span>
+          <span className="text-sm font-medium text-white bg-gray-700 rounded-lg px-3 py-1">מודעה בסיסית</span>
         </div>
 
         {/* Details */}
         <div className="flex flex-col gap-2.5 mt-1">
           {[
-            { icon: Globe, label: "מדינה", text: "ארצות הברית" },
-            { icon: Building2, label: "עיר", text: job.companyAddress || "לא צוין" },
-            { icon: DollarSign, label: "שכר", text: job.salary || "תחרותי בהתאם לניסיון" },
-            { icon: Clock, label: "שעות עבודה", text: `${job.startTime || "08:00"} - ${job.endTime || "18:00"}` },
+            { icon: Globe, label: "מדינה", text: job.job_states?.join(", ") || "לא צוין" },
+            { icon: Building2, label: "עיר", text: job.job_cities?.join(", ") || "לא צוין" },
+            { icon: DollarSign, label: "שכר", text: job.salary || "לא צוין" },
+            { icon: Clock, label: "שעות עבודה", text: job.start_time && job.end_time ? `${job.start_time} - ${job.end_time}` : "לא צוין" },
             { icon: IdCard, label: "חובה רישיון", text: job.license ? "כן" : "לא" },
             { icon: Car, label: "מספק רכב", text: job.car ? "כן" : "לא" },
             { icon: BedDouble, label: "מספק דיור", text: job.housing ? "כן" : "לא" },
@@ -142,7 +208,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <button onClick={() => router.push("/messages")} className="text-yellow-500 font-bold text-base active:opacity-70">לצ׳אט</button>
           <div className="flex items-center gap-2">
             <MessageCircle size={24} className="text-gray-700" strokeWidth={1.6} />
-            <span className="text-sm text-gray-600">יש לך 0 הודעות</span>
+            <span className="text-sm text-gray-600">יש לך {approved.length} שיחות פתוחות</span>
           </div>
         </div>
 
@@ -164,9 +230,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         {/* Stats */}
         <div className="flex justify-between mt-2 border-t border-gray-100 pt-4">
           {[
-            { icon: Eye, label: "צפו במודעה", value: "0" },
-            { icon: Heart, label: "שהבתי את המודעה", value: "0" },
-            { icon: Users, label: "השאירו מועמדות", value: "0" },
+            { icon: Eye, label: "צפו במודעה", value: viewCount },
+            { icon: Heart, label: "אהבו את המודעה", value: 0 },
+            { icon: Users, label: "הגישו מועמדות", value: applicants.length },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex flex-col items-center gap-1">
               <Icon size={22} className="text-gray-500" strokeWidth={1.6} />
@@ -176,23 +242,56 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           ))}
         </div>
 
-        {/* Approve applicant (demo) */}
-        <div className="mt-3 border border-dashed border-gray-200 rounded-2xl px-4 py-4 flex flex-col gap-2">
+        {/* Applicants */}
+        <div className="mt-3 border border-gray-100 rounded-2xl px-4 py-4 flex flex-col gap-3">
           <p className="text-sm font-bold text-gray-700 text-right">מועמדים</p>
-          <p className="text-xs text-gray-400 text-right">לחץ לאישור מועמדות לדוגמא</p>
-          <button
-            onClick={() => {
-              const apps = JSON.parse(localStorage.getItem("hevre_my_applications") || "[]");
-              const updated = apps.map((a: { jobId: string; status?: string }) =>
-                a.jobId === id ? { ...a, status: "approved" } : a
-              );
-              localStorage.setItem("hevre_my_applications", JSON.stringify(updated));
-              alert("המועמדות אושרה!");
-            }}
-            className="w-full h-11 bg-green-500 text-white font-bold text-sm rounded-xl active:bg-green-600"
-          >
-            ✓ אשר מועמד
-          </button>
+
+          {/* Pending */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-orange-500 text-right">ממתינים לאישור ({pending.length})</p>
+            {pending.length === 0
+              ? <p className="text-xs text-gray-300 text-right">אין מועמדים בהמתנה</p>
+              : pending.map(a => (
+                <div key={a.id} className="flex items-center justify-between bg-orange-50 rounded-xl px-3 py-2.5">
+                  <button
+                    onClick={() => setSelectedApplicant(a)}
+                    className="flex items-center gap-1 text-xs font-bold text-blue-700 active:opacity-70"
+                  >
+                    <ChevronLeft size={14} strokeWidth={2.5} />
+                    צפה במועמד
+                  </button>
+                  <span className="text-sm font-medium text-gray-800">{a.name}</span>
+                </div>
+              ))}
+          </div>
+
+          {/* Approved */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold text-green-600 text-right">אושרו ({approved.length})</p>
+            {approved.length === 0
+              ? <p className="text-xs text-gray-300 text-right">אין מועמדים שאושרו</p>
+              : approved.map(a => (
+                <div key={a.id} className="flex items-center justify-between bg-green-50 rounded-xl px-3 py-2.5">
+                  <button
+                    onClick={async () => {
+                      const { data: conv } = await supabase
+                        .from("conversations")
+                        .select("id")
+                        .eq("job_id", id)
+                        .eq("applicant_id", a.applicant_id)
+                        .single();
+                      if (conv?.id) router.push(`/messages/${conv.id}`);
+                      else router.push("/messages");
+                    }}
+                    className="flex items-center gap-1 text-xs font-bold text-green-600 active:opacity-70"
+                  >
+                    <MessageCircle size={13} strokeWidth={2} />
+                    פתח צ׳אט
+                  </button>
+                  <span className="text-sm font-medium text-gray-800">{a.name}</span>
+                </div>
+              ))}
+          </div>
         </div>
 
         {/* Meta */}
@@ -207,11 +306,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       <nav className="fixed bottom-0 right-0 left-0 z-50 bg-white border-t border-gray-200">
         <div className="flex items-center justify-around h-16">
           {[
-            { href: "/profile", icon: User, label: "אזור אישי" },
-            { href: "/saved", icon: Heart, label: "אהבתי" },
-            { href: "/post?new=1", icon: PlusCircle, label: "פרסום" },
-            { href: "/search", icon: Search, label: "חיפוש" },
             { href: "/", icon: Home, label: "דף הבית" },
+            { href: "/search", icon: Search, label: "חיפוש" },
+            { href: "/post?new=1", icon: PlusCircle, label: "פרסום" },
+            { href: "/saved", icon: Heart, label: "אהבתי" },
+            { href: "/profile", icon: User, label: "אזור אישי" },
           ].map(({ href, icon: Icon, label }) => (
             <Link key={href} href={href} className="flex flex-col items-center justify-center flex-1 h-full gap-0.5">
               <Icon size={24} className="text-gray-400" strokeWidth={1.8} />
@@ -228,6 +327,98 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </button>
       </div>
 
+      {/* Applicant modal */}
+      {selectedApplicant && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedApplicant(null)} />
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            <div className="bg-white rounded-t-3xl w-full px-5 pt-5 pb-10 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-1">
+                <button onClick={() => setSelectedApplicant(null)} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200">
+                  <X size={18} className="text-gray-600" strokeWidth={2} />
+                </button>
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className="w-9" />
+              </div>
+
+              {/* Profile header */}
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 text-2xl font-black text-blue-700 overflow-hidden">
+                  {selectedApplicant.avatar_url
+                    ? <Image src={selectedApplicant.avatar_url} alt="" width={56} height={56} className="w-full h-full object-cover" />
+                    : selectedApplicant.name[0]}
+                </div>
+                <div className="flex-1 text-right">
+                  <p className="text-lg font-black text-gray-900">{selectedApplicant.name}</p>
+                  <div className="flex gap-2 justify-end flex-wrap mt-0.5">
+                    {selectedApplicant.age && (
+                      <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">גיל {selectedApplicant.age}</span>
+                    )}
+                    {selectedApplicant.gender && (
+                      <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">{selectedApplicant.gender}</span>
+                    )}
+                    <span className={`text-xs rounded-full px-2.5 py-1 ${selectedApplicant.license ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                      {selectedApplicant.license ? "✓ יש רישיון" : "אין רישיון"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Languages */}
+              {selectedApplicant.languages.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs font-semibold text-gray-500 text-right">שפות</p>
+                  <div className="flex flex-wrap gap-1.5 justify-end">
+                    {selectedApplicant.languages.map(l => (
+                      <span key={l} className="text-xs bg-blue-50 text-blue-700 rounded-full px-2.5 py-1 font-medium">{l}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* About self */}
+              {selectedApplicant.about_self && (
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs font-semibold text-gray-500 text-right">על עצמו</p>
+                  <p className="text-sm text-gray-700 text-right leading-relaxed bg-gray-50 rounded-xl px-3 py-2.5">{selectedApplicant.about_self}</p>
+                </div>
+              )}
+
+              {/* Answers */}
+              {questions.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs font-semibold text-gray-500 text-right">תשובות לשאלות</p>
+                  {questions.map((q, i) => (
+                    <div key={i} className="flex flex-col gap-1">
+                      <p className="text-xs font-bold text-gray-700 text-right">{q}</p>
+                      <p className="text-sm text-gray-600 text-right bg-gray-50 rounded-xl px-3 py-2.5 leading-relaxed">
+                        {selectedApplicant.answers[i] || "—"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Approve / Reject */}
+              <div className="flex gap-3 mt-2">
+                <button
+                  onClick={() => handleReject(selectedApplicant)}
+                  className="flex-1 h-13 rounded-2xl border-2 border-red-400 text-red-500 font-bold text-base active:bg-red-50 py-3"
+                >
+                  דחה
+                </button>
+                <button
+                  onClick={() => handleApprove(selectedApplicant)}
+                  className="flex-1 h-13 rounded-2xl bg-blue-700 text-white font-bold text-base active:bg-blue-800 py-3"
+                >
+                  אשר ופתח צ׳אט
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Confirm freeze modal */}
       {confirmFreeze && (
         <>
@@ -235,17 +426,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
             <div className="bg-white rounded-3xl w-full px-6 py-7 flex flex-col gap-5">
               <h2 className="text-lg font-bold text-gray-900 text-center">הקפאת מודעה</h2>
-              <p className="text-sm text-gray-500 text-center leading-relaxed">
-                אתה בטוח שתרצה להקפיא פרסום מודעה זו?
-              </p>
+              <p className="text-sm text-gray-500 text-center leading-relaxed">אתה בטוח שתרצה להקפיא פרסום מודעה זו?</p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmFreeze(false)} className="flex-1 h-12 rounded-2xl border border-gray-300 text-gray-700 font-medium">לא</button>
-                <button
-                  onClick={handleFreeze}
-                  className="flex-1 h-12 rounded-2xl bg-blue-700 text-white font-bold active:bg-blue-800"
-                >
-                  כן
-                </button>
+                <button onClick={handleFreeze} className="flex-1 h-12 rounded-2xl bg-blue-700 text-white font-bold active:bg-blue-800">כן</button>
               </div>
             </div>
           </div>

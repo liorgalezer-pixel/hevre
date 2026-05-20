@@ -9,6 +9,7 @@ import { CATEGORIES } from "@/lib/categories";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
 import { X } from "lucide-react";
+import LocationPicker from "@/components/LocationPicker";
 
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_1;
 
@@ -28,11 +29,13 @@ function PostJobContent() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [companyAddress, setCompanyAddress] = useState("");
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [otherText, setOtherText] = useState("");
   const [description, setDescription] = useState("");
@@ -46,41 +49,48 @@ function PostJobContent() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) setShowAuthModal(true);
-      setAuthChecked(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    const isNew = searchParams.get("new") === "1";
-    if (isNew) {
-      const existingJobs = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-      if (existingJobs.length >= 2) {
-        setShowLimitModal(true);
+      if (!user) {
+        setShowAuthModal(true);
+        setAuthChecked(true);
         setDataLoaded(true);
         return;
       }
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STORAGE_KEYS.POST_STEP_2);
-      localStorage.removeItem(STORAGE_KEYS.POST_STEP_3);
-      router.replace("/post");
-    } else {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const d = JSON.parse(saved);
-          if (d.jobTitle) setJobTitle(d.jobTitle);
-          if (d.companyName) setCompanyName(d.companyName);
-          if (d.companyAddress) setCompanyAddress(d.companyAddress);
-          if (d.selectedCategories) setSelectedCategories(d.selectedCategories);
-          if (d.otherText) setOtherText(d.otherText);
-          if (d.description) setDescription(d.description);
-          if (d.logoPreview) setLogoPreview(d.logoPreview);
-          if (d.requirements) setRequirements(d.requirements);
-        } catch {}
+      const uid = user.id;
+      setUserId(uid);
+      setAuthChecked(true);
+
+      const isNew = searchParams.get("new") === "1";
+      if (isNew) {
+        const allJobs = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALL_JOBS) || "[]");
+      const existingJobs = allJobs.filter((j: { createdBy?: string }) => j.createdBy === uid);
+        if (existingJobs.length >= 2) {
+          setShowLimitModal(true);
+          setDataLoaded(true);
+          return;
+        }
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEYS.POST_STEP_2);
+        localStorage.removeItem(STORAGE_KEYS.POST_STEP_3);
+        router.replace("/post");
+      } else {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const d = JSON.parse(saved);
+            if (d.jobTitle) setJobTitle(d.jobTitle);
+            if (d.companyName) setCompanyName(d.companyName);
+            if (d.selectedStates) setSelectedStates(d.selectedStates);
+            if (d.selectedCities) setSelectedCities(d.selectedCities);
+            if (d.selectedCategories) setSelectedCategories(d.selectedCategories);
+            if (d.otherText) setOtherText(d.otherText);
+            if (d.description) setDescription(d.description);
+            if (d.logoPreview) setLogoPreview(d.logoPreview);
+            if (d.requirements) setRequirements(d.requirements);
+          } catch {}
+        }
       }
-    }
-    setDataLoaded(true);
+      setDataLoaded(true);
+    });
   }, [searchParams]);
 
   const toggleCategory = (id: string) => {
@@ -100,9 +110,9 @@ function PostJobContent() {
   useEffect(() => {
     if (!dataLoaded) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      jobTitle, companyName, companyAddress, selectedCategories, otherText, description, logoPreview, requirements,
+      jobTitle, companyName, selectedStates, selectedCities, selectedCategories, otherText, description, logoPreview, requirements,
     }));
-  }, [jobTitle, companyName, companyAddress, selectedCategories, otherText, description, logoPreview, requirements, dataLoaded]);
+  }, [jobTitle, companyName, selectedStates, selectedCities, selectedCategories, otherText, description, logoPreview, requirements, dataLoaded]);
 
   const handleContinue = () => {
     router.push("/post/step2");
@@ -159,16 +169,14 @@ function PostJobContent() {
           />
         </div>
 
-        {/* Company address */}
+        {/* Location */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-base font-bold text-gray-900 text-right">כתובת החברה</label>
-          <input
-            type="text"
-            placeholder="כתובת החברה"
-            value={companyAddress}
-            onChange={(e) => setCompanyAddress(e.target.value)}
-            dir="rtl"
-            className="w-full h-13 rounded-xl border border-gray-200 bg-white px-4 text-right text-base outline-none focus:border-blue-500 placeholder:text-gray-300"
+          <label className="text-base font-bold text-gray-900 text-right">מיקום המשרה</label>
+          <LocationPicker
+            selectedStates={selectedStates}
+            selectedCities={selectedCities}
+            onStatesChange={setSelectedStates}
+            onCitiesChange={setSelectedCities}
           />
         </div>
 

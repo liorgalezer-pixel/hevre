@@ -124,7 +124,7 @@ export default function PostJobStep2Page() {
         {/* Salary */}
         <div className="flex items-center gap-3" style={{ direction: "ltr" }}>
           <input
-            type="number"
+            type="text"
             placeholder="למשל 2000-4000"
             value={salary}
             onChange={(e) => setSalary(e.target.value)}

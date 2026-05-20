@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { MOCK_JOBS } from "@/lib/mock-jobs";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { myApplicationsKey, STORAGE_KEYS } from "@/lib/storage-keys";
 
 type Application = {
   jobId: string;
@@ -32,22 +32,76 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
+  const [appStorageKey, setAppStorageKey] = useState<string>(STORAGE_KEYS.MY_APPLICATIONS);
+  const [userJob, setUserJob] = useState<typeof MOCK_JOBS[0] | null>(null);
+  const [jobLoaded, setJobLoaded] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setIsLoggedIn(!!data.session);
-    });
-    const apps: Application[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_APPLICATIONS) || "[]");
-    const myApp = apps.find((a) => a.jobId === id);
-    if (myApp) {
-      setAlreadyApplied(true);
-      setIsApproved(myApp.status === "approved");
+    (async () => {
+    // Find user-posted job from Supabase
+    const { data: found } = await supabase
+      .from("jobs")
+      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3")
+      .eq("id", id)
+      .single();
+    if (found) {
+      setUserJob({
+        id: found.id,
+        title: found.title,
+        company: found.company_name || found.company_address || "חברה",
+        salary: found.salary || "",
+        location: (found.job_cities?.length ? found.job_cities.join(", ") : found.company_address) || "",
+        hours: found.start_time && found.end_time ? `${found.start_time}-${found.end_time}` : "",
+        categories: found.categories || [],
+        car: !!found.car,
+        license: !!found.license,
+        housing: !!found.housing,
+        weekend: !!found.weekend,
+        description: found.description || "",
+        requirements: found.requirements || [],
+        questions: [found.q1, found.q2, found.q3].filter(Boolean),
+      });
+    }
+    setJobLoaded(true);
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    setIsLoggedIn(!!sessionData.session);
+
+    if (sessionData.session) {
+      const userId = sessionData.session.user.id;
+
+      // Record unique view
+      await supabase.from("job_views").upsert({ job_id: id, viewer_id: userId }, { onConflict: "job_id,viewer_id" });
+
+      const { data: myApp } = await supabase
+        .from("applications")
+        .select("status")
+        .eq("job_id", id)
+        .eq("applicant_id", userId)
+        .single();
+      if (myApp) {
+        setAlreadyApplied(true);
+        setIsApproved(myApp.status === "approved");
+        if (myApp.status === "approved") {
+          const { data: conv } = await supabase
+            .from("conversations")
+            .select("id")
+            .eq("job_id", id)
+            .eq("applicant_id", userId)
+            .single();
+          if (conv?.id) setConversationId(conv.id);
+        }
+      }
     }
     // Track job view
     if (job) posthog.capture("job_viewed", { job_id: id, job_title: job.title, company: job.company });
+    })();
   }, [id]);
 
-  const job = MOCK_JOBS.find((j) => j.id === id);
+  const job = MOCK_JOBS.find((j) => j.id === id) ?? userJob;
+
+  if (!jobLoaded) return null;
 
   if (!job) return (
     <div className="flex flex-col min-h-screen items-center justify-center gap-4" dir="rtl">
@@ -71,25 +125,22 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
 
   const allAnswered = answers.length === job?.questions.length && answers.every((a) => a.trim() !== "");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!allAnswered || !job) return;
-    const apps: Application[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_APPLICATIONS) || "[]");
-    if (!apps.some((a) => a.jobId === id)) {
-      apps.push({
-        jobId: id,
-        title: job.title,
-        company: job.company,
-        salary: job.salary,
-        location: job.location,
-        date: new Date().toLocaleDateString("he-IL"),
-        logo: job.company[0],
-      });
-      localStorage.setItem(STORAGE_KEYS.MY_APPLICATIONS, JSON.stringify(apps));
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("applications").insert({
+      job_id: id,
+      applicant_id: user.id,
+      answers: answers,
+      about_self: aboutSelf,
+    });
+    if (!error) {
       posthog.capture("job_applied", { job_id: id, job_title: job.title, company: job.company });
+      setApplyOpen(false);
+      setSubmitted(true);
+      setAlreadyApplied(true);
     }
-    setApplyOpen(false);
-    setSubmitted(true);
-    setAlreadyApplied(true);
   };
 
   return (
@@ -187,9 +238,12 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       {/* Apply button */}
       <div className="fixed bottom-16 right-0 left-0 bg-white border-t border-gray-100 px-4 py-3">
         {isApproved ? (
-          <div className="w-full h-14 bg-green-50 border border-green-200 text-green-600 font-black text-base rounded-2xl flex items-center justify-center gap-2">
-            ✓ מועמדות אושרה!
-          </div>
+          <button
+            onClick={() => conversationId ? router.push(`/messages/${conversationId}`) : router.push("/messages")}
+            className="w-full h-14 bg-green-600 text-white font-black text-base rounded-2xl flex items-center justify-center gap-2 active:bg-green-700"
+          >
+            ✓ מועמדות אושרה — פתח צ׳אט
+          </button>
         ) : alreadyApplied || submitted ? (
           <div className="w-full h-14 bg-orange-50 border border-orange-200 text-orange-500 font-black text-base rounded-2xl flex items-center justify-center gap-2">
             ⏳ מועמדות בהמתנה

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, Search, PlusCircle, LogOut, UserPen } from "lucide-react";
+import { Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, Search, PlusCircle, LogOut, UserPen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -38,9 +38,7 @@ export default function ProfilePage() {
 
       {/* Header */}
       <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
-        <button className="w-11 h-11 flex items-center justify-center">
-          <Settings size={24} className="text-gray-700" strokeWidth={1.8} />
-        </button>
+        <div className="w-11" />
         <h1 className="text-lg font-bold text-gray-900">אזור אישי</h1>
         <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
       </header>

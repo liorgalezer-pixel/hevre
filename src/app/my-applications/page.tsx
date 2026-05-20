@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 type Application = {
   jobId: string;
@@ -36,9 +35,28 @@ export default function MyApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setIsLoggedIn(!!user));
-    const apps: Application[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_APPLICATIONS) || "[]");
-    setApplications(apps);
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setIsLoggedIn(false); return; }
+      setIsLoggedIn(true);
+      const { data } = await supabase
+        .from("applications")
+        .select("id, job_id, status, created_at, jobs(title, company_name, company_address, salary)")
+        .eq("applicant_id", user.id)
+        .order("created_at", { ascending: false });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const apps: Application[] = (data || []).map((a: any) => ({
+        jobId: a.job_id,
+        title: a.jobs?.title || "",
+        company: a.jobs?.company_name || a.jobs?.company_address || "",
+        salary: a.jobs?.salary || "",
+        location: a.jobs?.company_address || "",
+        date: new Date(a.created_at).toLocaleDateString("he-IL"),
+        logo: (a.jobs?.company_name || "?")[0],
+        status: (a.status as "pending" | "approved") || "pending",
+      }));
+      setApplications(apps);
+    })();
   }, []);
 
   const pending = applications.filter(a => !a.status || a.status === "pending");

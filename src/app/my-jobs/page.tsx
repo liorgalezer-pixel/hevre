@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronRight, X, ImageIcon, Eye } from "lucide-react";
+import { ChevronRight, X, ImageIcon, Eye, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
 
 type Job = {
@@ -23,27 +22,71 @@ type Job = {
 export default function MyJobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
   const [bannerVisible, setBannerVisible] = useState(true);
   const [showEmptyModal, setShowEmptyModal] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setIsLoggedIn(false);
         setLoaded(true);
         return;
       }
       setIsLoggedIn(true);
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
+      const { data } = await supabase
+        .from("jobs")
+        .select("id, title, salary, company_address, categories, logo_url, active, frozen")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false });
+      const stored = (data || []).map(j => ({
+        id: j.id,
+        title: j.title,
+        salary: j.salary || "",
+        companyAddress: j.company_address || "",
+        categories: j.categories || [],
+        logoPreview: j.logo_url || null,
+        active: j.active,
+        frozen: j.frozen,
+      }));
       setJobs(stored);
       if (stored.length === 0) setShowEmptyModal(true);
+
+      // Load pending applicant counts
+      if (stored.length > 0) {
+        const jobIds = stored.map(j => j.id);
+        const { data: apps } = await supabase
+          .from("applications")
+          .select("job_id")
+          .in("job_id", jobIds)
+          .eq("status", "pending");
+        const counts: Record<string, number> = {};
+        (apps || []).forEach((a: { job_id: string }) => {
+          counts[a.job_id] = (counts[a.job_id] || 0) + 1;
+        });
+        setPendingCounts(counts);
+      }
+
       setLoaded(true);
-    });
+    })();
   }, []);
 
-  if (!loaded) return null;
+  if (!loaded) return (
+    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+        <div className="w-11 h-11" />
+        <h1 className="text-lg font-bold text-gray-900">מודעות שפרסמתי</h1>
+        <div className="w-20 h-8 bg-gray-100 rounded animate-pulse" />
+      </header>
+      <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
+        {[1, 2].map(i => <div key={i} className="bg-white rounded-2xl h-40 animate-pulse" />)}
+      </main>
+      <BottomNav />
+    </div>
+  );
 
   if (!isLoggedIn) return (
     <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
@@ -146,7 +189,13 @@ export default function MyJobsPage() {
             </p>
 
             {/* Tags */}
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end flex-wrap">
+              {(pendingCounts[job.id] || 0) > 0 && (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-orange-500 border border-orange-200 bg-orange-50 rounded-lg px-3 py-1">
+                  <Users size={14} strokeWidth={2} />
+                  מועמדים בהמתנה ({pendingCounts[job.id]})
+                </span>
+              )}
               <span className={`flex items-center gap-1.5 text-sm font-medium border rounded-lg px-3 py-1 ${job.frozen ? "text-red-500 border-gray-200" : "text-green-600 border-gray-200"}`}>
                 <span className={`w-2 h-2 rounded-full inline-block ${job.frozen ? "bg-red-500" : "bg-green-500"}`} />
                 {job.frozen ? "קפוא" : "פעילה"}

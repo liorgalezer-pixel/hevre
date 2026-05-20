@@ -5,7 +5,8 @@ import { ChevronRight, ImageIcon, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/categories";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
+import LocationPicker from "@/components/LocationPicker";
 
 const TIMES: string[] = [];
 for (let h = 0; h < 24; h++) {
@@ -77,7 +78,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [jobTitle, setJobTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [companyAddress, setCompanyAddress] = useState("");
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [salary, setSalary] = useState("");
   const [startTime, setStartTime] = useState("08:00");
@@ -93,29 +95,29 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
   const [q2, setQ2] = useState("");
   const [q3, setQ3] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-
   useEffect(() => {
-    const stored: JobData[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    const job = stored.find(j => j.id === id);
-    if (!job) return;
-    setJobTitle(job.title || "");
-    setCompanyName(job.companyName || "");
-    setCompanyAddress(job.companyAddress || "");
-    setDescription(job.description || "");
-    setSalary(job.salary || "");
-    setStartTime(job.startTime || "08:00");
-    setEndTime(job.endTime || "18:00");
-    setWeekend(!!job.weekend);
-    setHolidays(!!job.holidays);
-    setLicense(!!job.license);
-    setCar(!!job.car);
-    setHousing(!!job.housing);
-    setSelectedCategories(job.categories || []);
-    setOtherText(job.otherText as string || "");
-    setQ1(job.q1 || "");
-    setQ2(job.q2 || "");
-    setQ3(job.q3 || "");
-    setLogoPreview(job.logoPreview || null);
+    (async () => {
+      const { data: job } = await supabase.from("jobs").select("*").eq("id", id).single();
+      if (!job) return;
+      setJobTitle(job.title || "");
+      setCompanyName(job.company_name || "");
+      if (job.job_states?.length) setSelectedStates(job.job_states);
+      if (job.job_cities?.length) setSelectedCities(job.job_cities);
+      setDescription(job.description || "");
+      setSalary(job.salary || "");
+      setStartTime(job.start_time || "08:00");
+      setEndTime(job.end_time || "18:00");
+      setWeekend(!!job.weekend);
+      setHolidays(!!job.holidays);
+      setLicense(!!job.license);
+      setCar(!!job.car);
+      setHousing(!!job.housing);
+      setSelectedCategories(job.categories || []);
+      setQ1(job.q1 || "");
+      setQ2(job.q2 || "");
+      setQ3(job.q3 || "");
+      setLogoPreview(job.logo_url || null);
+    })();
   }, [id]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,15 +128,27 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
-    const stored: JobData[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    const updated = stored.map(j => j.id === id ? {
-      ...j, title: jobTitle, companyName, companyAddress, description, categories: selectedCategories, otherText,
-      salary, startTime, endTime, weekend, holidays, license, car, housing,
-      q1, q2, q3, logoPreview,
-    } : j);
-    localStorage.setItem(STORAGE_KEYS.MY_JOBS, JSON.stringify(updated));
-    setShowSuccess(true);
+  const handleSave = async () => {
+    const { error } = await supabase.from("jobs").update({
+      title: jobTitle,
+      company_name: companyName,
+      company_address: selectedCities[0] || selectedStates[0] || "",
+      job_states: selectedStates,
+      job_cities: selectedCities,
+      description,
+      categories: selectedCategories,
+      salary,
+      start_time: startTime,
+      end_time: endTime,
+      weekend,
+      holidays,
+      license,
+      car,
+      housing,
+      q1, q2, q3,
+      logo_url: logoPreview,
+    }).eq("id", id);
+    if (!error) setShowSuccess(true);
   };
 
   return (
@@ -167,10 +181,15 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} dir="rtl" className="w-full h-13 rounded-xl border border-gray-200 bg-white px-4 text-right text-base outline-none focus:border-blue-500" />
         </div>
 
-        {/* Company address */}
+        {/* Location */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-base font-bold text-gray-900 text-right">כתובת החברה</label>
-          <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} dir="rtl" className="w-full h-13 rounded-xl border border-gray-200 bg-white px-4 text-right text-base outline-none focus:border-blue-500" />
+          <label className="text-base font-bold text-gray-900 text-right">מיקום המשרה</label>
+          <LocationPicker
+            selectedStates={selectedStates}
+            selectedCities={selectedCities}
+            onStatesChange={setSelectedStates}
+            onCitiesChange={setSelectedCities}
+          />
         </div>
 
         {/* Category */}

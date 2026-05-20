@@ -89,9 +89,10 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
         <button
           onClick={openStateDropdown}
           className="w-full h-12 border border-gray-200 rounded-2xl px-4 flex items-center justify-between bg-white active:bg-gray-50"
+          style={{ direction: "ltr" }}
         >
           <ChevronDown size={18} className={`text-gray-400 transition-transform ${stateOpen ? "rotate-180" : ""}`} strokeWidth={2} />
-          <span className="text-sm text-gray-400">{selectedStates.length > 0 ? `${selectedStates.length} מדינות נבחרו` : "בחר מדינה..."}</span>
+          <span className="text-sm text-gray-400">{selectedStates.length > 0 ? `${selectedStates.length} מדינות נבחרו` : "בחר מדינה"}</span>
         </button>
 
         {stateOpen && (
@@ -101,7 +102,7 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
                 type="text"
                 value={stateSearch}
                 onChange={(e) => setStateSearch(e.target.value)}
-                placeholder="חיפוש מדינה..."
+                placeholder="חיפוש מדינה"
                 className="w-full h-10 bg-gray-100 rounded-xl px-3 text-right text-sm outline-none placeholder:text-gray-400"
               />
             </div>
@@ -151,10 +152,11 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
           onClick={openCityDropdown}
           className={`w-full h-12 border rounded-2xl px-4 flex items-center justify-between bg-white ${selectedStates.length === 0 ? "border-gray-100 opacity-50 cursor-not-allowed" : "border-gray-200 active:bg-gray-50"}`}
           disabled={selectedStates.length === 0}
+          style={{ direction: "ltr" }}
         >
           <ChevronDown size={18} className={`text-gray-400 transition-transform ${cityOpen ? "rotate-180" : ""}`} strokeWidth={2} />
           <span className="text-sm text-gray-400">
-            {selectedStates.length === 0 ? "בחר מדינה תחילה" : selectedCities.length > 0 ? `${selectedCities.length} ערים נבחרו` : "בחר עיר..."}
+            {selectedStates.length === 0 ? "בחר מדינה תחילה" : selectedCities.length > 0 ? `${selectedCities.length} ערים נבחרו` : "בחר עיר"}
           </span>
         </button>
 
@@ -165,7 +167,7 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
                 type="text"
                 value={citySearch}
                 onChange={(e) => setCitySearch(e.target.value)}
-                placeholder="חיפוש עיר..."
+                placeholder="חיפוש עיר"
                 className="w-full h-10 bg-gray-100 rounded-xl px-3 text-right text-sm outline-none placeholder:text-gray-400"
               />
             </div>

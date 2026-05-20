@@ -5,6 +5,7 @@ import { ChevronRight, Plus, X, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import UserLocationPicker from "@/components/UserLocationPicker";
 
 const PROFILE_KEY = "hevre_profile";
 const defaultLanguages = ["עברית", "אנגלית", "ערבית", "ספרדית", "אחר"];
@@ -18,7 +19,9 @@ type ProfileData = {
   birthDate: string;
   city: string;
   country: string;
-  intlLicense: boolean;
+  usState: string;
+  ilLicense: boolean;
+  usLicense: boolean;
   selectedLangs: string[];
 };
 
@@ -33,7 +36,9 @@ export default function ProfileEditPage() {
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
-  const [intlLicense, setIntlLicense] = useState(false);
+  const [usState, setUsState] = useState("");
+  const [ilLicense, setIlLicense] = useState(false);
+  const [usLicense, setUsLicense] = useState(false);
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
   const [customLang, setCustomLang] = useState("");
   const [saved, setSaved] = useState(false);
@@ -68,7 +73,8 @@ export default function ProfileEditPage() {
           if (data.birth_date) setBirthDate(data.birth_date);
           if (data.city) setCity(data.city);
           if (data.country) setCountry(data.country);
-          if (typeof data.intl_license === "boolean") setIntlLicense(data.intl_license);
+          if (data.city) setCity(data.city);
+          if (typeof data.intl_license === "boolean") setIlLicense(data.intl_license);
           if (Array.isArray(data.languages) && data.languages.length) setSelectedLangs(data.languages);
           return;
         }
@@ -89,7 +95,9 @@ export default function ProfileEditPage() {
           if (d.birthDate) setBirthDate(d.birthDate);
           if (d.city) setCity(d.city);
           if (d.country) setCountry(d.country);
-          if (typeof d.intlLicense === "boolean") setIntlLicense(d.intlLicense);
+          if (d.usState) setUsState(d.usState);
+          if (typeof d.ilLicense === "boolean") setIlLicense(d.ilLicense);
+          if (typeof d.usLicense === "boolean") setUsLicense(d.usLicense);
           if (d.selectedLangs?.length) setSelectedLangs(d.selectedLangs);
         } catch {}
       }
@@ -100,7 +108,7 @@ export default function ProfileEditPage() {
   const handleSave = async () => {
     const data: ProfileData = {
       firstName, lastName, phone, phoneCountry, email,
-      birthDate, city, country, intlLicense, selectedLangs,
+      birthDate, city, country, usState, ilLicense, usLicense, selectedLangs,
     };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
 
@@ -116,7 +124,8 @@ export default function ProfileEditPage() {
         birth_date: birthDate,
         city,
         country,
-        intl_license: intlLicense,
+        il_license: ilLicense,
+        us_license: usLicense,
         languages: selectedLangs.filter(l => l !== "__other__"),
       });
     }
@@ -278,40 +287,25 @@ export default function ProfileEditPage() {
             />
           </div>
 
-          {/* Country */}
-          <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">מדינה</label>
-            <input
-              type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              placeholder="הזן מדינה"
-              dir="rtl"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
-            />
-          </div>
+          {/* Location Picker */}
+          <UserLocationPicker
+            country={country}
+            setCountry={setCountry}
+            usState={usState}
+            setUsState={setUsState}
+            city={city}
+            setCity={setCity}
+          />
 
-          {/* City */}
-          <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">עיר</label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="הזן עיר"
-              dir="rtl"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
-            />
-          </div>
-
-          {/* International license */}
+          {/* License toggle */}
           <div className="flex items-center gap-3 py-1">
-            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה בינלאומי</span>
+            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה ישראלי / אמריקאי</span>
             <button
-              onClick={() => setIntlLicense(!intlLicense)}
-              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${intlLicense ? "bg-blue-600" : "bg-gray-300"}`}
+              type="button"
+              onClick={() => setIlLicense(!ilLicense)}
+              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${ilLicense ? "bg-blue-600" : "bg-gray-300"}`}
             >
-              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${intlLicense ? "right-0.5" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${ilLicense ? "right-0.5" : "left-0.5"}`} />
             </button>
           </div>
         </div>
@@ -319,7 +313,7 @@ export default function ProfileEditPage() {
         {/* Languages */}
         <div className="mt-6">
           <h2 className="text-base font-bold text-gray-900 text-right mb-1">שפות</h2>
-          <p className="text-sm text-gray-400 text-right mb-3">שפות שאתה מדבר ברמה סבירה</p>
+          <p className="text-sm text-gray-400 text-right mb-3">שפות שאתה מדבר ברמה טובה</p>
 
           <div className="flex flex-wrap gap-2 justify-end mb-3">
             {defaultLanguages.map((lang) => (

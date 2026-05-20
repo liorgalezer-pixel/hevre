@@ -6,6 +6,7 @@ import { ChevronRight, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import UserLocationPicker from "@/components/UserLocationPicker";
 
 const defaultLanguages = ["עברית", "אנגלית", "ערבית", "ספרדית", "אחר"];
 
@@ -28,32 +29,76 @@ export default function RegisterCompletePage() {
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
-  const [intlLicense, setIntlLicense] = useState(false);
+  const [usState, setUsState] = useState("");
+  const [ilLicense, setIlLicense] = useState(false);
   const [licenseCity, setLicenseCity] = useState("");
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
   const [customLang, setCustomLang] = useState("");
+  const [attempted, setAttempted] = useState(false);
+
+  const isInUSA = country === 'ארה"ב';
+
+  const errors = {
+    firstName: !firstName.trim(),
+    lastName: !lastName.trim(),
+    phone: phone.length < (phoneCountry === "+1" ? 10 : 9),
+    birthDate: birthDate.length < 10,
+    location: isInUSA ? (!usState || !city) : false,
+  };
+
+  const hasErrors = Object.values(errors).some(Boolean);
 
   const handleComplete = async () => {
+    setAttempted(true);
+    if (hasErrors) return;
+
     setLoading(true);
     setError("");
 
     const storedEmail = localStorage.getItem("reg_email") || email;
-    // Password was stored in sessionStorage (not localStorage) to avoid disk persistence
     const storedPassword = sessionStorage.getItem("reg_password") || "";
 
+    // נסה sign up — אם המשתמש כבר קיים, נתחבר במקום
+    let userId: string;
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: storedEmail,
       password: storedPassword,
     });
 
-    if (signUpError || !signUpData.user) {
-      setError(signUpError ? `שגיאה: ${signUpError.message}` : "לא התקבל משתמש - נסה שוב");
+    if (signUpError) {
+      const alreadyExists =
+        signUpError.message.toLowerCase().includes("already registered") ||
+        signUpError.message.toLowerCase().includes("already exists") ||
+        signUpError.message.toLowerCase().includes("user already");
+
+      if (alreadyExists) {
+        // המשתמש כבר קיים — ננסה להתחבר
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: storedEmail,
+          password: storedPassword,
+        });
+        if (signInError || !signInData.user) {
+          setError("האימייל כבר רשום. אם שכחת סיסמה — חזור להתחברות.");
+          setLoading(false);
+          return;
+        }
+        userId = signInData.user.id;
+      } else {
+        setError(`שגיאה: ${signUpError.message}`);
+        setLoading(false);
+        return;
+      }
+    } else if (!signUpData.user) {
+      setError("לא התקבל משתמש — נסה שוב");
       setLoading(false);
       return;
+    } else {
+      userId = signUpData.user.id;
     }
 
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: signUpData.user.id,
+    // upsert כדי לא לכשול אם הפרופיל כבר קיים
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: userId,
       email: storedEmail,
       first_name: firstName,
       last_name: lastName,
@@ -63,7 +108,9 @@ export default function RegisterCompletePage() {
       birth_date: birthDate,
       city,
       country,
-      intl_license: intlLicense,
+      intl_license: ilLicense,
+      il_license: ilLicense,
+      us_license: false,
       languages: selectedLangs.filter(l => l !== "__other__"),
     });
 
@@ -71,7 +118,7 @@ export default function RegisterCompletePage() {
 
     ["reg_email","reg_first_name","reg_last_name","reg_age","reg_gender"].forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem("reg_password");
-    posthog.identify(signUpData.user.id, { email: storedEmail, first_name: firstName, last_name: lastName });
+    posthog.identify(userId, { email: storedEmail, first_name: firstName, last_name: lastName });
     posthog.capture("user_registered", { city, country });
     router.push("/");
   };
@@ -107,25 +154,31 @@ export default function RegisterCompletePage() {
         {/* Personal fields */}
         <div className="flex flex-col gap-3 mb-6">
           {[
-            { label: "שם פרטי", value: firstName, setter: setFirstName, placeholder: "אבי", type: "text" },
-            { label: "שם משפחה", value: lastName, setter: setLastName, placeholder: "כהן", type: "text" },
-          ].map(({ label, value, setter, placeholder, type }) => (
+            { label: "שם פרטי", value: firstName, setter: setFirstName, placeholder: "אבי", type: "text", err: errors.firstName },
+            { label: "שם משפחה", value: lastName, setter: setLastName, placeholder: "כהן", type: "text", err: errors.lastName },
+          ].map(({ label, value, setter, placeholder, type, err }) => (
             <div key={label}>
-              <label className="text-sm text-gray-600 font-medium block text-right mb-1">{label}</label>
+              <label className={`text-sm font-medium block text-right mb-1 ${attempted && err ? "text-red-500" : "text-gray-600"}`}>
+                {label} {attempted && err && <span className="text-red-400 text-xs">— שדה חובה</span>}
+              </label>
               <input
                 type={type}
                 value={value}
                 placeholder={placeholder}
                 onChange={(e) => setter(e.target.value)}
                 dir="rtl"
-                className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+                className={`w-full border rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 ${
+                  attempted && err ? "border-red-400 bg-red-50" : "border-gray-300"
+                }`}
               />
             </div>
           ))}
 
           {/* Phone with country code */}
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">טלפון נייד</label>
+            <label className={`text-sm font-medium block text-right mb-1 ${attempted && errors.phone ? "text-red-500" : "text-gray-600"}`}>
+              טלפון נייד {attempted && errors.phone && <span className="text-red-400 text-xs">— שדה חובה</span>}
+            </label>
             <div className="flex gap-2 items-center" style={{ direction: "ltr" }}>
               <div className="relative shrink-0">
                 <button
@@ -162,7 +215,9 @@ export default function RegisterCompletePage() {
                 placeholder={phoneCountry === "+1" ? "2125551234" : "501234567"}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 style={{ direction: "ltr" }}
-                className="flex-1 border border-gray-300 rounded-xl h-11 px-3 text-left text-sm outline-none bg-white placeholder:text-gray-300"
+                className={`flex-1 border rounded-xl h-11 px-3 text-left text-sm outline-none bg-white placeholder:text-gray-300 ${
+                  attempted && errors.phone ? "border-red-400 bg-red-50" : "border-gray-300"
+                }`}
               />
             </div>
           </div>
@@ -180,7 +235,9 @@ export default function RegisterCompletePage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">תאריך לידה</label>
+            <label className={`text-sm font-medium block text-right mb-1 ${attempted && errors.birthDate ? "text-red-500" : "text-gray-600"}`}>
+              תאריך לידה {attempted && errors.birthDate && <span className="text-red-400 text-xs">— שדה חובה</span>}
+            </label>
             <input
               type="text"
               value={birthDate}
@@ -194,42 +251,36 @@ export default function RegisterCompletePage() {
                 else if (digits.length > 2) formatted = digits.slice(0, 2) + "/" + digits.slice(2);
                 setBirthDate(formatted);
               }}
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+              className={`w-full border rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 ${
+                attempted && errors.birthDate ? "border-red-400 bg-red-50" : "border-gray-300"
+              }`}
             />
           </div>
 
-          {/* Country */}
-          <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">מדינה</label>
-            <input
-              type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              placeholder="הזן מדינה"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+          {/* Location Picker */}
+          <div className={attempted && errors.location ? "rounded-2xl border border-red-400 bg-red-50 p-3" : ""}>
+            {attempted && errors.location && (
+              <p className="text-red-500 text-xs text-right mb-2">יש לבחור מדינה ועיר</p>
+            )}
+            <UserLocationPicker
+              country={country}
+              setCountry={setCountry}
+              usState={usState}
+              setUsState={setUsState}
+              city={city}
+              setCity={setCity}
             />
           </div>
 
-          {/* City */}
-          <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">עיר</label>
-            <input
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="הזן עיר"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
-            />
-          </div>
-
-          {/* International license */}
+          {/* License toggle */}
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה בינלאומי</span>
+            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה ישראלי / אמריקאי</span>
             <button
-              onClick={() => setIntlLicense(!intlLicense)}
-              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${intlLicense ? "bg-blue-600" : "bg-gray-300"}`}
+              type="button"
+              onClick={() => setIlLicense(!ilLicense)}
+              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${ilLicense ? "bg-blue-600" : "bg-gray-300"}`}
             >
-              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${intlLicense ? "right-0.5" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${ilLicense ? "right-0.5" : "left-0.5"}`} />
             </button>
           </div>
         </div>
@@ -237,7 +288,7 @@ export default function RegisterCompletePage() {
         {/* Languages */}
         <div className="mb-8">
           <h2 className="text-lg font-bold text-gray-900 text-right mb-1">באילו שפות אתה מדבר?</h2>
-          <p className="text-sm text-gray-400 text-right mb-4">שפות שאתה מדבר ברמה סבירה</p>
+          <p className="text-sm text-gray-400 text-right mb-4">שפות שאתה מדבר ברמה טובה</p>
 
           <div className="flex flex-wrap gap-2 justify-end mb-3">
             {defaultLanguages.map((lang) => (
@@ -300,13 +351,18 @@ export default function RegisterCompletePage() {
           {" "}ומסיים את ההרשמה.
         </p>
 
+        {attempted && hasErrors && (
+          <p className="text-red-500 text-sm text-center mb-3 font-medium">יש למלא את כל השדות המסומנים</p>
+        )}
         {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
 
         {/* Submit button */}
         <button
           onClick={handleComplete}
           disabled={loading}
-          className={`w-full font-bold text-lg rounded-full h-14 transition-colors text-white ${loading ? "bg-gray-300" : "bg-yellow-400 active:bg-yellow-500"}`}
+          className={`w-full font-bold text-lg rounded-full h-14 transition-colors text-white ${
+            loading ? "bg-gray-300" : "bg-yellow-400 active:bg-yellow-500"
+          }`}
         >
           {loading ? "שומר..." : "כניסה וסיום"}
         </button>

@@ -5,7 +5,8 @@ import posthog from "posthog-js";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { STORAGE_KEYS, myJobsKey } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_3;
 
@@ -27,20 +28,24 @@ export default function PostJobStep3Page() {
     } catch {}
   }, []);
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ q1, q2, q3 }));
+    const { data: { user } } = await supabase.auth.getUser();
 
     // Merge all steps into one job entry and save to jobs list
     const step1 = JSON.parse(localStorage.getItem(STORAGE_KEYS.POST_STEP_1) || "{}");
     const step2 = JSON.parse(localStorage.getItem(STORAGE_KEYS.POST_STEP_2) || "{}");
     const newJob = {
       id: Date.now().toString(),
-      title: step1.jobTitle || step1.companyName || "משרה חדשה",
+      title: step1.jobTitle || "משרה חדשה",
+      companyName: step1.companyName || "",
       description: step1.description || "",
       categories: step1.selectedCategories || [],
       otherText: step1.otherText || "",
       logoPreview: step1.logoPreview || null,
-      companyAddress: step1.companyAddress || "",
+      companyAddress: step1.selectedCities?.[0] || step1.selectedStates?.[0] || "",
+      jobStates: step1.selectedStates || [],
+      jobCities: step1.selectedCities || [],
       salary: step2.salary || "",
       startTime: step2.startTime || "",
       endTime: step2.endTime || "",
@@ -53,8 +58,31 @@ export default function PostJobStep3Page() {
       active: true,
       createdAt: new Date().toISOString(),
     };
-    const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    localStorage.setItem(STORAGE_KEYS.MY_JOBS, JSON.stringify([newJob, ...existing]));
+    const { error } = await supabase.from("jobs").insert({
+      id: newJob.id,
+      created_by: user?.id,
+      title: newJob.title,
+      company_name: newJob.companyName,
+      company_address: newJob.companyAddress,
+      job_states: newJob.jobStates,
+      job_cities: newJob.jobCities,
+      salary: newJob.salary,
+      start_time: newJob.startTime,
+      end_time: newJob.endTime,
+      categories: newJob.categories,
+      description: newJob.description,
+      requirements: step1.requirements || [],
+      logo_url: newJob.logoPreview,
+      car: newJob.car,
+      license: newJob.license,
+      housing: newJob.housing,
+      weekend: newJob.weekend,
+      holidays: newJob.holidays,
+      q1: newJob.q1,
+      q2: newJob.q2,
+      q3: newJob.q3,
+    });
+    if (error) { alert("שגיאה בשמירת המשרה: " + error.message); return; }
     posthog.capture("job_posted", { job_title: newJob.title, company: newJob.companyName, categories: newJob.categories });
 
     setSuccess(true);
@@ -87,7 +115,7 @@ export default function PostJobStep3Page() {
           { label: "שאלה 3", value: q3, set: setQ3 },
         ].map(({ label, value, set }) => (
           <div key={label} className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" style={{ direction: "ltr" }}>
               <span className="text-xs text-gray-400">אופציונלי</span>
               <span className="text-base font-bold text-gray-900">{label}</span>
             </div>

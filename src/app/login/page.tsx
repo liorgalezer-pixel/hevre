@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff, ChevronRight } from "lucide-react";
@@ -18,11 +19,15 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setError("מייל או סיסמא שגויים");
       setLoading(false);
       return;
+    }
+    if (data.user) {
+      posthog.identify(data.user.id, { email: data.user.email });
+      posthog.capture("user_logged_in", { email: data.user.email });
     }
     router.push("/");
   };

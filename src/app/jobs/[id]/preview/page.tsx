@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { ChevronRight, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, Heart, Share2, Eye } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
 
 type Job = {
   id: string;
@@ -22,8 +22,27 @@ type Job = {
   housing: boolean;
   startTime: string;
   endTime: string;
-  frozen?: boolean;
 };
+
+function mapRow(j: Record<string, unknown>): Job {
+  return {
+    id: j.id as string,
+    title: j.title as string,
+    salary: (j.salary as string) || "",
+    companyAddress: (j.company_address as string) || "",
+    companyName: (j.company_name as string) || "",
+    categories: (j.categories as string[]) || [],
+    logoPreview: (j.logo_url as string) || null,
+    description: (j.description as string) || "",
+    weekend: !!j.weekend,
+    holidays: !!j.holidays,
+    license: !!j.license,
+    car: !!j.car,
+    housing: !!j.housing,
+    startTime: (j.start_time as string) || "08:00",
+    endTime: (j.end_time as string) || "18:00",
+  };
+}
 
 export default function JobPreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -32,9 +51,10 @@ export default function JobPreviewPage({ params }: { params: Promise<{ id: strin
   const [liked, setLiked] = useState(false);
 
   useEffect(() => {
-    const stored: Job[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_JOBS) || "[]");
-    const found = stored.find((j) => j.id === id);
-    if (found) setJob(found);
+    (async () => {
+      const { data } = await supabase.from("jobs").select("*").eq("id", id).single();
+      if (data) setJob(mapRow(data as Record<string, unknown>));
+    })();
   }, [id]);
 
   if (!job) return (
