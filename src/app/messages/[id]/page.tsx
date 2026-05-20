@@ -111,9 +111,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   // Send WhatsApp link as a chat message
   const handleSendWhatsApp = async () => {
     if (!myId) return;
-    const countryDigits = waCountry.replace("+", "");
-    const digits = countryDigits + waPhone.replace(/\D/g, "");
     if (!waPhone.replace(/\D/g, "")) return;
+    const countryDigits = waCountry.replace("+", "");
+    // Strip leading country code or leading 0 from local number
+    let localDigits = waPhone.replace(/\D/g, "");
+    if (localDigits.startsWith(countryDigits)) localDigits = localDigits.slice(countryDigits.length);
+    else if (localDigits.startsWith("0")) localDigits = localDigits.slice(1);
+    const digits = countryDigits + localDigits;
     const name = myFirstName || "אני";
     const waText = encodeURIComponent(`היי זה ${name} הגעתי אליך מחבר'ה`);
     const link = `https://wa.me/${digits}?text=${waText}`;
