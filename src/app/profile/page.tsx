@@ -11,7 +11,6 @@ const accountItems: { icon: React.ElementType; label: string; bold: boolean; hre
   { icon: Monitor, label: "המודעות שלי", bold: false, href: "/my-jobs" },
   { icon: FileCheck, label: "מועמדות שלי למשרות", bold: false, href: "/my-applications" },
   { icon: Heart, label: "משרות שמורות", bold: false, href: "/saved" },
-  { icon: Search, label: "החיפושים שלי", bold: false, href: "/my-searches", todo: true },
   { icon: Bell, label: "התראות", bold: false, href: "/alerts" },
   { icon: Mail, label: "הודעות", bold: false, href: "/messages" },
   { icon: UserPen, label: "עדכון פרטים אישיים", bold: false, href: "/profile/edit" },

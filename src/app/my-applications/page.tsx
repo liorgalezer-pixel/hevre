@@ -30,8 +30,9 @@ function Tag({ children }: { children: React.ReactNode }) {
 
 export default function MyApplicationsPage() {
   const router = useRouter();
-  const [pendingOpen, setPendingOpen] = useState(true);
-  const [approvedOpen, setApprovedOpen] = useState(true);
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const [approvedOpen, setApprovedOpen] = useState(false);
+  const [rejectedOpen, setRejectedOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
 
@@ -191,11 +192,11 @@ export default function MyApplicationsPage() {
         {/* Rejected */}
         {rejected.length > 0 && (
           <>
-            <button onClick={() => {}} className="flex flex-row-reverse items-center justify-between mb-3 w-full mt-2">
-              <ChevronDown size={18} className="text-gray-500" strokeWidth={2} />
+            <button onClick={() => setRejectedOpen(v => !v)} className="flex flex-row-reverse items-center justify-between mb-3 w-full mt-2">
+              <ChevronDown size={18} className={`text-gray-500 transition-transform ${rejectedOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
               <p className="text-base font-bold text-gray-700">משרות שנדחו ({rejected.length})</p>
             </button>
-            <div className="flex flex-col gap-3">
+            {rejectedOpen && <div className="flex flex-col gap-3">
               {rejected.map((job) => (
                 <div key={job.jobId} className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-red-100">
                   <div className="flex items-center gap-2 justify-end mb-1">
@@ -206,7 +207,7 @@ export default function MyApplicationsPage() {
                   <p className="text-xs text-red-500 font-bold text-right">✗ המועמדות נדחתה</p>
                 </div>
               ))}
-            </div>
+            </div>}
           </>
         )}
       </main>

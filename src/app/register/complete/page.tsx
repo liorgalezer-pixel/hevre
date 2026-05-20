@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import posthog from "posthog-js";
-import { ChevronRight, Plus, X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import UserLocationPicker from "@/components/UserLocationPicker";
+import LanguageSearchModal from "@/components/LanguageSearchModal";
 
 const defaultLanguages = ["עברית", "אנגלית", "ערבית", "ספרדית", "אחר"];
 
@@ -33,7 +34,7 @@ export default function RegisterCompletePage() {
   const [ilLicense, setIlLicense] = useState(false);
   const [licenseCity, setLicenseCity] = useState("");
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
-  const [customLang, setCustomLang] = useState("");
+  const [langModalOpen, setLangModalOpen] = useState(false);
   const [attempted, setAttempted] = useState(false);
 
   const isInUSA = country === 'ארה"ב';
@@ -129,13 +130,7 @@ export default function RegisterCompletePage() {
     );
   };
 
-  const addCustomLang = () => {
-    const trimmed = customLang.trim();
-    if (trimmed && !selectedLangs.includes(trimmed)) {
-      setSelectedLangs((prev) => [...prev, trimmed]);
-    }
-    setCustomLang("");
-  };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-white" dir="rtl">
@@ -290,22 +285,19 @@ export default function RegisterCompletePage() {
           <h2 className="text-lg font-bold text-gray-900 text-right mb-1">באילו שפות אתה מדבר?</h2>
           <p className="text-sm text-gray-400 text-right mb-4">שפות שאתה מדבר ברמה טובה</p>
 
-          <div className="flex flex-wrap gap-2 justify-end mb-3">
+          <div className="flex flex-wrap gap-2 justify-start mb-3" dir="rtl">
             {defaultLanguages.map((lang) => (
               <button
                 key={lang}
                 onClick={() => {
                   if (lang === "אחר") {
-                    setCustomLang("");
-                    setSelectedLangs((prev) =>
-                      prev.includes("__other__") ? prev.filter(l => l !== "__other__") : [...prev, "__other__"]
-                    );
+                    setLangModalOpen(true);
                   } else {
                     toggleLang(lang);
                   }
                 }}
                 className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                  (lang === "אחר" ? selectedLangs.includes("__other__") : selectedLangs.includes(lang))
+                  selectedLangs.includes(lang)
                     ? "bg-gray-700 text-white border-gray-700"
                     : "bg-white text-gray-700 border-gray-300"
                 }`}
@@ -325,22 +317,12 @@ export default function RegisterCompletePage() {
             ))}
           </div>
 
-          {/* Custom language input – shown only when "אחר" is selected */}
-          {selectedLangs.includes("__other__") && (
-            <div className="flex items-center border border-gray-300 rounded-2xl px-4 h-11 gap-2 mb-2">
-              <button onClick={addCustomLang} className="text-gray-400">
-                <Plus size={18} />
-              </button>
-              <input
-                type="text"
-                value={customLang}
-                onChange={(e) => setCustomLang(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addCustomLang()}
-                placeholder="הוסף שפה נוספת..."
-                autoFocus
-                className="flex-1 text-right text-sm outline-none bg-transparent placeholder:text-gray-300"
-              />
-            </div>
+          {langModalOpen && (
+            <LanguageSearchModal
+              selected={selectedLangs}
+              onAdd={(lang) => setSelectedLangs(prev => [...prev, lang])}
+              onClose={() => setLangModalOpen(false)}
+            />
           )}
         </div>
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronRight, Plus, X, CheckCircle2 } from "lucide-react";
+import { ChevronRight, X, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import UserLocationPicker from "@/components/UserLocationPicker";
+import LanguageSearchModal from "@/components/LanguageSearchModal";
 
 const PROFILE_KEY = "hevre_profile";
 const defaultLanguages = ["עברית", "אנגלית", "ערבית", "ספרדית", "אחר"];
@@ -40,7 +41,7 @@ export default function ProfileEditPage() {
   const [ilLicense, setIlLicense] = useState(false);
   const [usLicense, setUsLicense] = useState(false);
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
-  const [customLang, setCustomLang] = useState("");
+  const [langModalOpen, setLangModalOpen] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -140,13 +141,7 @@ export default function ProfileEditPage() {
     );
   };
 
-  const addCustomLang = () => {
-    const trimmed = customLang.trim();
-    if (trimmed && !selectedLangs.includes(trimmed)) {
-      setSelectedLangs((prev) => [...prev, trimmed]);
-    }
-    setCustomLang("");
-  };
+
 
   if (saved) {
     return (
@@ -315,22 +310,19 @@ export default function ProfileEditPage() {
           <h2 className="text-base font-bold text-gray-900 text-right mb-1">שפות</h2>
           <p className="text-sm text-gray-400 text-right mb-3">שפות שאתה מדבר ברמה טובה</p>
 
-          <div className="flex flex-wrap gap-2 justify-end mb-3">
+          <div className="flex flex-wrap gap-2 justify-start mb-3" dir="rtl">
             {defaultLanguages.map((lang) => (
               <button
                 key={lang}
                 onClick={() => {
                   if (lang === "אחר") {
-                    setCustomLang("");
-                    setSelectedLangs((prev) =>
-                      prev.includes("__other__") ? prev.filter(l => l !== "__other__") : [...prev, "__other__"]
-                    );
+                    setLangModalOpen(true);
                   } else {
                     toggleLang(lang);
                   }
                 }}
                 className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                  (lang === "אחר" ? selectedLangs.includes("__other__") : selectedLangs.includes(lang))
+                  selectedLangs.includes(lang)
                     ? "bg-gray-700 text-white border-gray-700"
                     : "bg-white text-gray-700 border-gray-300"
                 }`}
@@ -350,21 +342,12 @@ export default function ProfileEditPage() {
             ))}
           </div>
 
-          {selectedLangs.includes("__other__") && (
-            <div className="flex items-center border border-gray-300 rounded-2xl px-4 h-11 gap-2 mb-2">
-              <button onClick={addCustomLang} className="text-gray-400">
-                <Plus size={18} />
-              </button>
-              <input
-                type="text"
-                value={customLang}
-                onChange={(e) => setCustomLang(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addCustomLang()}
-                placeholder="הוסף שפה נוספת..."
-                autoFocus
-                className="flex-1 text-right text-sm outline-none bg-transparent placeholder:text-gray-300"
-              />
-            </div>
+          {langModalOpen && (
+            <LanguageSearchModal
+              selected={selectedLangs}
+              onAdd={(lang) => setSelectedLangs(prev => [...prev, lang])}
+              onClose={() => setLangModalOpen(false)}
+            />
           )}
         </div>
       </div>
