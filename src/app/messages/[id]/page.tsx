@@ -43,7 +43,17 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       if (myProfile) {
         setMyFirstName(myProfile.first_name || "");
         setMyPhone(myProfile.phone || "");
-        setWaPhone(myProfile.phone || "");
+        // Parse country code and local number separately
+        const raw = (myProfile.phone || "").replace(/\D/g, "");
+        if (raw.startsWith("972")) {
+          setWaCountry("+972");
+          setWaPhone(raw.slice(3));
+        } else if (raw.startsWith("1")) {
+          setWaCountry("+1");
+          setWaPhone(raw.slice(1));
+        } else {
+          setWaPhone(raw);
+        }
       }
 
       // Load conversation metadata
@@ -113,10 +123,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (!myId) return;
     if (!waPhone.replace(/\D/g, "")) return;
     const countryDigits = waCountry.replace("+", "");
-    // Strip leading country code or leading 0 from local number
-    let localDigits = waPhone.replace(/\D/g, "");
-    if (localDigits.startsWith(countryDigits)) localDigits = localDigits.slice(countryDigits.length);
-    else if (localDigits.startsWith("0")) localDigits = localDigits.slice(1);
+    const localDigits = waPhone.replace(/\D/g, "");
     const digits = countryDigits + localDigits;
     const name = myFirstName || "אני";
     const waText = encodeURIComponent(`היי זה ${name} הגעתי אליך מחבר'ה`);
