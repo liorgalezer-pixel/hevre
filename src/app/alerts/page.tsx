@@ -104,33 +104,19 @@ export default function AlertsPage() {
         ) : (
           <>
             <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-bold text-gray-900">ההתראות שלי</h2>
               <button
                 onClick={() => router.push("/alerts/new")}
                 className="flex items-center gap-1.5 bg-blue-700 text-white font-semibold text-sm rounded-xl px-4 py-2.5 active:bg-blue-800"
               >
-                <Plus size={15} strokeWidth={2.5} />
                 התראה חדשה
+                <Plus size={15} strokeWidth={2.5} />
               </button>
-              <h2 className="text-lg font-bold text-gray-900">ההתראות שלי</h2>
             </div>
 
             {alerts.map((alert) => (
               <div key={alert.id} className="bg-white rounded-2xl px-4 py-4 shadow-sm flex flex-col gap-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => router.push(`/alerts/new?edit=${alert.id}`)}
-                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 active:bg-blue-100"
-                    >
-                      <Pencil size={15} className="text-blue-600" strokeWidth={2} />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDeleteId(alert.id)}
-                      className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 active:bg-red-100"
-                    >
-                      <Trash2 size={16} className="text-red-400" strokeWidth={2} />
-                    </button>
-                  </div>
+                <div className="flex items-start gap-2">
                   <div className="flex-1 text-right">
                     <p className="text-base font-black text-gray-900">{alert.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
@@ -142,7 +128,7 @@ export default function AlertsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 justify-end">
+                <div className="flex flex-wrap gap-1.5 justify-start">
                   {(alert.categories || []).map((cat) => (
                     <span key={cat} className="flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">
                       <Tag size={10} strokeWidth={2} />
@@ -162,11 +148,26 @@ export default function AlertsPage() {
                   ))}
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 justify-end">
+                <div className="flex flex-wrap gap-1.5 justify-start">
                   {alert.license && <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">רישיון נהיגה</span>}
                   {alert.car && <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">כולל רכב</span>}
                   {alert.weekend && <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">סוף שבוע</span>}
                   {alert.holidays && <span className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">חגים</span>}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1 border-t border-gray-100">
+                  <button
+                    onClick={() => router.push(`/alerts/new?edit=${alert.id}`)}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-blue-50 active:bg-blue-100"
+                  >
+                    <Pencil size={15} className="text-blue-600" strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(alert.id)}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 active:bg-red-100"
+                  >
+                    <Trash2 size={16} className="text-red-400" strokeWidth={2} />
+                  </button>
                 </div>
               </div>
             ))}

@@ -72,6 +72,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         setOtherName(emp ? (c.applicant?.first_name || "מועמד") : (c.employer?.first_name || "מעסיק"));
       }
 
+      // Delete messages older than 72 hours
+      const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+      await supabase.from("messages").delete().eq("conversation_id", conversationId).lt("created_at", cutoff);
+
       // Load messages
       const { data: msgs } = await supabase
         .from("messages")
@@ -161,6 +165,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         )}
       </header>
 
+
+      {/* Security notice */}
+      <div className="bg-gray-50 border-b border-gray-100 px-4 py-2 text-center">
+        <p className="text-[11px] text-gray-400">🔒 לצורכי אבטחה ההודעות ימחקו תוך 72 שעות</p>
+      </div>
 
       {/* Messages */}
       <main className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">

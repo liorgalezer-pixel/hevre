@@ -18,6 +18,7 @@ type Filters = {
   toTime: string;
   license: boolean;
   car: boolean;
+  housing: boolean;
   weekend: boolean;
   holidays: boolean;
 };
@@ -35,6 +36,8 @@ export default function HomePage() {
   const [userJobs, setUserJobs] = useState<MockJob[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedStorageKey, setSavedStorageKey] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -50,6 +53,7 @@ export default function HomePage() {
       try { setFilters(JSON.parse(stored)); } catch {}
     }
     supabase.auth.getUser().then(async ({ data: { user } }) => {
+      setIsLoggedIn(!!user);
       if (user) {
         const sKey = savedJobsKey(user.id);
         setSavedStorageKey(sKey);
@@ -158,7 +162,7 @@ export default function HomePage() {
     filters.categories.length > 0 ||
     filters.states.length > 0 ||
     filters.cities.length > 0 ||
-    filters.license || filters.car || filters.weekend || filters.holidays
+    filters.license || filters.car || filters.housing || filters.weekend || filters.holidays
   );
 
   return (
@@ -198,9 +202,9 @@ export default function HomePage() {
                   </div>
                   <div className="flex flex-col gap-2 text-sm text-gray-500">
                     {/* Employer: new applicants */}
-                    {newApplicants.map((n, i) => (
+                    {newApplicants.map((n) => (
                       <button
-                        key={i}
+                        key={`${n.jobId}-${n.applicantName}`}
                         onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}`); }}
                         className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-blue-100"
                       >
@@ -250,6 +254,8 @@ export default function HomePage() {
             <Search size={17} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
               placeholder="חיפוש משרה..."
               className="w-full bg-gray-100 rounded-xl h-11 pr-9 pl-3 text-right text-sm outline-none placeholder:text-gray-400 text-gray-800"
             />
@@ -260,7 +266,7 @@ export default function HomePage() {
               סנן
               {hasActiveFilters && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-400 rounded-full text-[10px] font-black flex items-center justify-center">
-                  {[filters!.categories.length, filters!.states.length, filters!.cities.length, filters!.license ? 1 : 0, filters!.car ? 1 : 0, filters!.weekend ? 1 : 0, filters!.holidays ? 1 : 0].reduce((a, b) => a + b, 0)}
+                  {[filters!.categories.length, filters!.states.length, filters!.cities.length, filters!.license ? 1 : 0, filters!.car ? 1 : 0, filters!.housing ? 1 : 0, filters!.weekend ? 1 : 0, filters!.holidays ? 1 : 0].reduce((a, b) => a + b, 0)}
                 </span>
               )}
             </button>
@@ -292,18 +298,39 @@ export default function HomePage() {
       </div>
 
 
+      {/* Not logged in banner */}
+      {isLoggedIn === false && (
+        <div className="mx-3 mt-3 bg-gradient-to-l from-blue-700 to-blue-500 rounded-2xl px-4 py-4 flex items-center justify-between gap-3 shadow-md" style={{ direction: "ltr" }}>
+          <button
+            onClick={() => router.push("/login")}
+            className="shrink-0 bg-white text-blue-700 font-black text-sm rounded-xl px-4 py-2 active:bg-blue-50"
+          >
+            התחבר / הירשם
+          </button>
+          <div className="flex-1 flex flex-col gap-0.5" dir="rtl">
+            <p className="text-white font-black text-sm leading-snug">עדיין לא מחובר לחבר׳ה?</p>
+            <p className="text-blue-100 text-xs leading-snug">התחבר / הירשם בחינם עכשיו</p>
+          </div>
+        </div>
+      )}
+
       {/* Jobs */}
       <main className="flex-1 px-3 py-4 pb-24 flex flex-col gap-3">
         {(() => {
           const allJobs = [...userJobs, ...MOCK_JOBS];
           const filtered = allJobs.filter(j => {
             if (rejectedJobIds.has(j.id)) return false;
+            if (searchText.trim()) {
+              const q = searchText.trim().toLowerCase();
+              if (!j.title.toLowerCase().includes(q) && !j.company.toLowerCase().includes(q) && !(j.description || "").toLowerCase().includes(q)) return false;
+            }
             if (activeCategory && !j.categories.includes(activeCategory)) return false;
             if (filters) {
               if (filters.categories.length > 0 && !filters.categories.some(c => j.categories.includes(c))) return false;
               if (filters.cities.length > 0 && !filters.cities.some(city => j.location.toLowerCase().includes(city.toLowerCase()))) return false;
               if (filters.license && !j.license) return false;
               if (filters.car && !j.car) return false;
+              if (filters.housing && !j.housing) return false;
             }
             return true;
           });

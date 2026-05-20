@@ -18,6 +18,7 @@ export default function FilterPage() {
   const [toTime, setToTime] = useState("17:00");
   const [license, setLicense] = useState(false);
   const [car, setCar] = useState(false);
+  const [housing, setHousing] = useState(false);
   const [weekend, setWeekend] = useState(false);
   const [holidays, setHolidays] = useState(false);
 
@@ -33,6 +34,7 @@ export default function FilterPage() {
         if (d.toTime) setToTime(d.toTime);
         if (typeof d.license === "boolean") setLicense(d.license);
         if (typeof d.car === "boolean") setCar(d.car);
+        if (typeof d.housing === "boolean") setHousing(d.housing);
         if (typeof d.weekend === "boolean") setWeekend(d.weekend);
         if (typeof d.holidays === "boolean") setHolidays(d.holidays);
       } catch {}
@@ -53,6 +55,7 @@ export default function FilterPage() {
       toTime,
       license,
       car,
+      housing,
       weekend,
       holidays,
     }));
@@ -67,6 +70,7 @@ export default function FilterPage() {
     setToTime("17:00");
     setLicense(false);
     setCar(false);
+    setHousing(false);
     setWeekend(false);
     setHolidays(false);
   };
@@ -126,29 +130,29 @@ export default function FilterPage() {
         />
 
         {/* Time range */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-gray-500 text-right">טווח שעות</p>
-          <div className="flex items-center gap-2" style={{ direction: "ltr" }}>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm text-gray-500 font-medium">From</span>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-semibold text-gray-500 text-right">שעות עבודה</p>
+          <div className="flex items-center justify-center gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-gray-400 font-medium">סיום</span>
               <select
-                value={fromTime}
-                onChange={(e) => setFromTime(e.target.value)}
-                className="h-11 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white"
+                value={toTime}
+                onChange={(e) => setToTime(e.target.value)}
+                className="h-11 w-24 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white text-center"
               >
                 {hours.map((h) => <option key={h}>{h}</option>)}
               </select>
             </div>
-            <span className="text-gray-400 font-bold">-</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-gray-300 font-bold text-lg mt-4">—</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-gray-400 font-medium">התחלה</span>
               <select
-                value={toTime}
-                onChange={(e) => setToTime(e.target.value)}
-                className="h-11 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white"
+                value={fromTime}
+                onChange={(e) => setFromTime(e.target.value)}
+                className="h-11 w-24 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white text-center"
               >
                 {hours.map((h) => <option key={h}>{h}</option>)}
               </select>
-              <span className="text-sm text-gray-500 font-medium">To</span>
             </div>
           </div>
         </div>
@@ -157,8 +161,9 @@ export default function FilterPage() {
         <div className="flex flex-col gap-4">
           {[
             { label: "חובת רישיון נהיגה", value: license, onChange: () => setLicense((v) => !v) },
-            { label: "כולל רכב", value: car, onChange: () => setCar((v) => !v) },
-            { label: 'עבודה בסוף שבוע', value: weekend, onChange: () => setWeekend((v) => !v) },
+            { label: "מספק רכב", value: car, onChange: () => setCar((v) => !v) },
+            { label: "מספק דיור", value: housing, onChange: () => setHousing((v) => !v) },
+            { label: "עבודה בסוף שבוע", value: weekend, onChange: () => setWeekend((v) => !v) },
             { label: "עבודה בחגים", value: holidays, onChange: () => setHolidays((v) => !v) },
           ].map(({ label, value, onChange }) => (
             <div key={label} className="flex items-center justify-between">
