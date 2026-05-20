@@ -32,6 +32,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
+  const [isRejected, setIsRejected] = useState(false);
   const [appStorageKey, setAppStorageKey] = useState<string>(STORAGE_KEYS.MY_APPLICATIONS);
   const [userJob, setUserJob] = useState<typeof MOCK_JOBS[0] | null>(null);
   const [jobLoaded, setJobLoaded] = useState(false);
@@ -83,6 +84,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       if (myApp) {
         setAlreadyApplied(true);
         setIsApproved(myApp.status === "approved");
+        setIsRejected(myApp.status === "rejected");
         if (myApp.status === "approved") {
           const { data: conv } = await supabase
             .from("conversations")
@@ -244,6 +246,10 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
           >
             ✓ מועמדות אושרה — פתח צ׳אט
           </button>
+        ) : isRejected ? (
+          <div className="w-full h-14 bg-red-50 border border-red-200 text-red-500 font-black text-base rounded-2xl flex items-center justify-center gap-2">
+            ✗ מועמדות נדחתה
+          </div>
         ) : alreadyApplied || submitted ? (
           <div className="w-full h-14 bg-orange-50 border border-orange-200 text-orange-500 font-black text-base rounded-2xl flex items-center justify-center gap-2">
             ⏳ מועמדות בהמתנה

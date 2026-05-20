@@ -146,6 +146,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const createdDate = job.created_at ? new Date(job.created_at).toLocaleDateString("he-IL") : "";
   const pending = applicants.filter(a => a.status === "pending");
   const approved = applicants.filter(a => a.status === "approved");
+  const archived = applicants.filter(a => a.status === "archived");
   const questions = [job.q1, job.q2, job.q3].filter(Boolean) as string[];
 
   return (
@@ -248,7 +249,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
           {/* Pending */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-orange-500 text-right">ממתינים לאישור ({pending.length})</p>
+            <div className="flex flex-col gap-0.5 text-right">
+              <p className="text-xs font-semibold text-orange-500">ממתינים לאישור ({pending.length})</p>
+              <p className="text-[10px] text-gray-400">אחרי 48 שעות המועמד יתבטל אוטומטית עקב חוסר מענה</p>
+            </div>
             {pending.length === 0
               ? <p className="text-xs text-gray-300 text-right">אין מועמדים בהמתנה</p>
               : pending.map(a => (
@@ -272,26 +276,50 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               ? <p className="text-xs text-gray-300 text-right">אין מועמדים שאושרו</p>
               : approved.map(a => (
                 <div key={a.id} className="flex items-center justify-between bg-green-50 rounded-xl px-3 py-2.5">
-                  <button
-                    onClick={async () => {
-                      const { data: conv } = await supabase
-                        .from("conversations")
-                        .select("id")
-                        .eq("job_id", id)
-                        .eq("applicant_id", a.applicant_id)
-                        .single();
-                      if (conv?.id) router.push(`/messages/${conv.id}`);
-                      else router.push("/messages");
-                    }}
-                    className="flex items-center gap-1 text-xs font-bold text-green-600 active:opacity-70"
-                  >
-                    <MessageCircle size={13} strokeWidth={2} />
-                    פתח צ׳אט
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        await supabase.from("applications").update({ status: "archived" }).eq("id", a.id);
+                        await loadApplicants();
+                      }}
+                      className="text-[10px] font-semibold text-gray-400 border border-gray-200 rounded-lg px-2 py-1 active:bg-gray-100"
+                    >
+                      ארכיון
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const { data: conv } = await supabase
+                          .from("conversations")
+                          .select("id")
+                          .eq("job_id", id)
+                          .eq("applicant_id", a.applicant_id)
+                          .single();
+                        if (conv?.id) router.push(`/messages/${conv.id}`);
+                        else router.push("/messages");
+                      }}
+                      className="flex items-center gap-1 text-xs font-bold text-green-600 active:opacity-70"
+                    >
+                      <MessageCircle size={13} strokeWidth={2} />
+                      פתח צ׳אט
+                    </button>
+                  </div>
                   <span className="text-sm font-medium text-gray-800">{a.name}</span>
                 </div>
               ))}
           </div>
+
+          {/* Archived */}
+          {archived.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-gray-400 text-right">ארכיון מועמדים שאושרו ({archived.length})</p>
+              {archived.map(a => (
+                <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                  <span className="text-[10px] text-gray-400 border border-gray-200 rounded-lg px-2 py-1">בארכיון</span>
+                  <span className="text-sm font-medium text-gray-500">{a.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Meta */}

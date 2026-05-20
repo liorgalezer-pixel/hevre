@@ -30,6 +30,7 @@ export default function HomePage() {
   const [filters, setFilters] = useState<Filters | null>(null);
   const [approvedApps, setApprovedApps] = useState<{ jobId: string; title: string; company: string }[]>([]);
   const [rejectedApps, setRejectedApps] = useState<{ jobId: string; title: string }[]>([]);
+  const [rejectedJobIds, setRejectedJobIds] = useState<Set<string>>(new Set());
   const [newApplicants, setNewApplicants] = useState<{ jobId: string; jobTitle: string; applicantName: string }[]>([]);
   const [userJobs, setUserJobs] = useState<MockJob[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -77,6 +78,13 @@ export default function HomePage() {
         }));
         setApprovedApps(approved);
         setRejectedApps(rejected);
+        // Hide rejected jobs from feed
+        const { data: allRejected } = await supabase
+          .from("applications")
+          .select("job_id")
+          .eq("applicant_id", user.id)
+          .eq("status", "rejected");
+        setRejectedJobIds(new Set((allRejected || []).map((a: { job_id: string }) => a.job_id)));
 
         // Employer: pending applications on my jobs
         const { data: myJobs } = await supabase
@@ -289,6 +297,7 @@ export default function HomePage() {
         {(() => {
           const allJobs = [...userJobs, ...MOCK_JOBS];
           const filtered = allJobs.filter(j => {
+            if (rejectedJobIds.has(j.id)) return false;
             if (activeCategory && !j.categories.includes(activeCategory)) return false;
             if (filters) {
               if (filters.categories.length > 0 && !filters.categories.some(c => j.categories.includes(c))) return false;
