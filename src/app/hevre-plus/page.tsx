@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import Image from "next/image";
 
 const PLANS = [
@@ -50,6 +51,7 @@ export default function HevrePlusPage() {
 
   const handlePurchase = () => {
     if (!selected) return;
+    posthog.capture("premium_click", { feature_type: selected });
     setPurchased(true);
   };
 

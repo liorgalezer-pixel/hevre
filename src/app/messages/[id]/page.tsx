@@ -4,6 +4,7 @@ import { use, useState, useEffect, useRef } from "react";
 import { ChevronRight, Send, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import posthog from "posthog-js";
 
 type Message = {
   id: string;
@@ -115,6 +116,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       conversation_id: conversationId,
       sender_id: myId,
       content: trimmed,
+    });
+    posthog.capture("chat_message_sent", {
+      sender_type: isEmployer ? "employer" : "seeker",
+      room_id: conversationId,
     });
   };
 

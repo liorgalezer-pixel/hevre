@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import posthog from "posthog-js";
 
 type Job = {
   id: string;
@@ -126,8 +127,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       .select("id")
       .single();
     setSelectedApplicant(null);
-    if (conv?.id) router.push(`/messages/${conv.id}`);
-    else await loadApplicants();
+    if (conv?.id) {
+      posthog.capture("chat_initiated", { job_id: id, applicant_id: applicant.applicant_id, room_id: conv.id });
+      router.push(`/messages/${conv.id}`);
+    } else await loadApplicants();
   };
 
   const handleReject = async (applicant: Applicant) => {

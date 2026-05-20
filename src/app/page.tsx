@@ -1,6 +1,7 @@
 "use client";
 
 import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2 } from "lucide-react";
+import posthog from "posthog-js";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
@@ -38,6 +39,7 @@ export default function HomePage() {
   const [savedStorageKey, setSavedStorageKey] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [searchText, setSearchText] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -156,6 +158,7 @@ export default function HomePage() {
     const updated = isSaved ? saved.filter(j => j.id !== job.id) : [...saved, job];
     localStorage.setItem(savedStorageKey, JSON.stringify(updated));
     setSavedIds(updated.map(j => j.id));
+    if (!isSaved) posthog.capture("job_saved", { job_id: job.id, category: job.categories?.[0] ?? null });
   };
 
   const hasActiveFilters = filters && (
@@ -255,7 +258,15 @@ export default function HomePage() {
             <input
               type="text"
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                if (e.target.value.trim().length >= 2) {
+                  searchTimerRef.current = setTimeout(() => {
+                    posthog.capture("search_performed", { query: e.target.value.trim() });
+                  }, 1000);
+                }
+              }}
               placeholder="חיפוש משרה..."
               className="w-full bg-gray-100 rounded-xl h-11 pr-9 pl-3 text-right text-sm outline-none placeholder:text-gray-400 text-gray-800"
             />
@@ -380,7 +391,10 @@ export default function HomePage() {
             </div>
 
             <button
-              onClick={() => router.push(`/jobs/${job.id}/view`)}
+              onClick={() => {
+                posthog.capture("apply_clicked", { job_id: job.id, category: job.categories?.[0] ?? null, source: "feed" });
+                router.push(`/jobs/${job.id}/view`);
+              }}
               className="w-full h-12 bg-blue-700 text-white font-bold text-sm rounded-xl active:bg-blue-800 transition-colors"
             >
               צפה במשרה

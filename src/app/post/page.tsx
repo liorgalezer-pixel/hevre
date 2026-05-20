@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/categories";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
+import posthog from "posthog-js";
 import { X } from "lucide-react";
 import LocationPicker from "@/components/LocationPicker";
 
@@ -115,6 +116,7 @@ function PostJobContent() {
   }, [jobTitle, companyName, selectedStates, selectedCities, selectedCategories, otherText, description, logoPreview, requirements, dataLoaded]);
 
   const handleContinue = () => {
+    posthog.capture("post_job_step", { step: 1, step_name: "basic_info" });
     router.push("/post/step2");
   };
 

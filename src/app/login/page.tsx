@@ -26,8 +26,11 @@ export default function LoginPage() {
       return;
     }
     if (data.user) {
-      posthog.identify(data.user.id, { email: data.user.email });
-      posthog.capture("user_logged_in", { email: data.user.email });
+      // Detect user_type: employer if they have posted jobs
+      const { count } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("created_by", data.user.id);
+      const userType = (count ?? 0) > 0 ? "employer" : "seeker";
+      posthog.identify(data.user.id, { email: data.user.email, user_type: userType });
+      posthog.capture("user_logged_in", { user_type: userType });
     }
     router.push("/");
   };

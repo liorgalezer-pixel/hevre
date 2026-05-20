@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import posthog from "posthog-js";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_2;
@@ -98,6 +99,7 @@ export default function PostJobStep2Page() {
   }, [salary, startTime, endTime, weekend, holidays, license, car, housing]);
 
   const handleContinueStep3 = () => {
+    posthog.capture("post_job_step", { step: 2, step_name: "conditions" });
     router.push("/post/step3");
   };
 

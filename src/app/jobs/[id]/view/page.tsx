@@ -97,7 +97,11 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       }
     }
     // Track job view
-    if (job) posthog.capture("job_viewed", { job_id: id, job_title: job.title, company: job.company });
+    if (job) posthog.capture("job_viewed", {
+      job_id: id,
+      category: job.categories?.[0] ?? null,
+      neighborhood: job.location ?? null,
+    });
     })();
   }, [id]);
 
@@ -121,6 +125,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       setAuthModalOpen(true);
       return;
     }
+    posthog.capture("apply_clicked", { job_id: id, category: job?.categories?.[0] ?? null, source: "job_page" });
     initAnswers();
     setApplyOpen(true);
   };
@@ -138,7 +143,10 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       about_self: aboutSelf,
     });
     if (!error) {
-      posthog.capture("job_applied", { job_id: id, job_title: job.title, company: job.company });
+      posthog.capture("application_submitted", {
+        job_id: id,
+        category: job.categories?.[0] ?? null,
+      });
       setApplyOpen(false);
       setSubmitted(true);
       setAlreadyApplied(true);

@@ -119,8 +119,8 @@ export default function RegisterCompletePage() {
 
     ["reg_email","reg_first_name","reg_last_name","reg_age","reg_gender"].forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem("reg_password");
-    posthog.identify(userId, { email: storedEmail, first_name: firstName, last_name: lastName });
-    posthog.capture("user_registered", { city, country });
+    posthog.identify(userId, { email: storedEmail, first_name: firstName, last_name: lastName, user_type: "seeker" });
+    posthog.capture("user_registered", { city, country, user_type: "seeker" });
     router.push("/");
   };
 
