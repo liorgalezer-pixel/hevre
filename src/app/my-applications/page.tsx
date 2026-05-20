@@ -16,7 +16,8 @@ type Application = {
   location: string;
   date: string;
   logo: string;
-  status?: "pending" | "approved";
+  status?: "pending" | "approved" | "rejected";
+  conversationId?: string;
 };
 
 function Tag({ children }: { children: React.ReactNode }) {
@@ -44,6 +45,15 @@ export default function MyApplicationsPage() {
         .select("id, job_id, status, created_at, jobs(title, company_name, company_address, salary)")
         .eq("applicant_id", user.id)
         .order("created_at", { ascending: false });
+
+      // Fetch conversations for approved apps
+      const { data: convs } = await supabase
+        .from("conversations")
+        .select("id, job_id")
+        .eq("applicant_id", user.id);
+      const convByJob: Record<string, string> = {};
+      (convs || []).forEach((c: { id: string; job_id: string }) => { convByJob[c.job_id] = c.id; });
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apps: Application[] = (data || []).map((a: any) => ({
         jobId: a.job_id,
@@ -53,7 +63,8 @@ export default function MyApplicationsPage() {
         location: a.jobs?.company_address || "",
         date: new Date(a.created_at).toLocaleDateString("he-IL"),
         logo: (a.jobs?.company_name || "?")[0],
-        status: (a.status as "pending" | "approved") || "pending",
+        status: (a.status as "pending" | "approved" | "rejected") || "pending",
+        conversationId: convByJob[a.job_id],
       }));
       setApplications(apps);
     })();
@@ -61,6 +72,7 @@ export default function MyApplicationsPage() {
 
   const pending = applications.filter(a => !a.status || a.status === "pending");
   const approved = applications.filter(a => a.status === "approved");
+  const rejected = applications.filter(a => a.status === "rejected");
 
   if (isLoggedIn === null) return null;
 
@@ -153,7 +165,10 @@ export default function MyApplicationsPage() {
         {approvedOpen && <div className="flex flex-col gap-3">
           {approved.map((job) => (
             <div key={job.jobId} className="bg-white rounded-2xl px-4 py-4 shadow-sm" style={{direction:"ltr", display:"flex", alignItems:"center", gap:"12px"}}>
-              <button className="flex items-center gap-1.5 bg-blue-700 text-white text-sm font-bold rounded-xl px-3 py-2 active:bg-blue-800 shrink-0">
+              <button
+                onClick={() => job.conversationId ? router.push(`/messages/${job.conversationId}`) : router.push("/messages")}
+                className="flex items-center gap-1.5 bg-blue-700 text-white text-sm font-bold rounded-xl px-3 py-2 active:bg-blue-800 shrink-0"
+              >
                 <MessageSquare size={14} />
                 פתיחת צ׳אט
               </button>
@@ -172,6 +187,28 @@ export default function MyApplicationsPage() {
             </div>
           ))}
         </div>}
+
+        {/* Rejected */}
+        {rejected.length > 0 && (
+          <>
+            <button onClick={() => {}} className="flex flex-row-reverse items-center justify-between mb-3 w-full mt-2">
+              <ChevronDown size={18} className="text-gray-500" strokeWidth={2} />
+              <p className="text-base font-bold text-gray-700">משרות שנדחו ({rejected.length})</p>
+            </button>
+            <div className="flex flex-col gap-3">
+              {rejected.map((job) => (
+                <div key={job.jobId} className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-red-100">
+                  <div className="flex items-center gap-2 justify-end mb-1">
+                    <p className="text-base font-black text-gray-900 text-right truncate flex-1">{job.title}</p>
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-black text-gray-700 shrink-0">{job.logo}</div>
+                  </div>
+                  <p className="text-sm text-gray-400 text-right mb-2">{job.company}</p>
+                  <p className="text-xs text-red-500 font-bold text-right">✗ המועמדות נדחתה</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </main>
 
       <BottomNav />
