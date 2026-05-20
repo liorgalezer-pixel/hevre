@@ -25,6 +25,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [jobTitle, setJobTitle] = useState("");
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [waPhone, setWaPhone] = useState("");
+  const [waCountry, setWaCountry] = useState<"+972" | "+1">("+972");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,9 +111,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   // Send WhatsApp link as a chat message
   const handleSendWhatsApp = async () => {
     if (!myId) return;
-    // Normalize phone: remove non-digits
-    const digits = waPhone.replace(/\D/g, "");
-    if (!digits) return;
+    const countryDigits = waCountry.replace("+", "");
+    const digits = countryDigits + waPhone.replace(/\D/g, "");
+    if (!waPhone.replace(/\D/g, "")) return;
     const name = myFirstName || "אני";
     const waText = encodeURIComponent(`היי זה ${name} הגעתי אליך מחבר'ה`);
     const link = `https://wa.me/${digits}?text=${waText}`;
@@ -244,22 +245,24 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-gray-700 text-right">מספר הוואטסאפ שלך</label>
-                <input
-                  type="tel"
-                  value={waPhone}
-                  onChange={(e) => setWaPhone(e.target.value)}
-                  placeholder="לדוגמה: 972501234567"
-                  dir="ltr"
-                  className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-left text-base outline-none focus:border-green-400"
-                />
-                <p className="text-xs text-gray-400 text-right">כולל קידומת מדינה ללא + (למשל: 972 לישראל, 1 לארה&quot;ב)</p>
-              </div>
-
-              <div className="bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
-                <p className="text-xs text-gray-500 text-right mb-1">ההודעה שתשלח:</p>
-                <p className="text-sm font-medium text-gray-800 text-right">
-                  &ldquo;היי זה {myFirstName || "שמך"} הגעתי אליך מחבר&apos;ה&rdquo;
-                </p>
+                <div className="flex gap-2" style={{ direction: "ltr" }}>
+                  <select
+                    value={waCountry}
+                    onChange={(e) => setWaCountry(e.target.value as "+972" | "+1")}
+                    className="h-12 bg-gray-50 border border-gray-200 rounded-xl px-3 text-base outline-none focus:border-green-400 shrink-0"
+                  >
+                    <option value="+972">🇮🇱 +972</option>
+                    <option value="+1">🇺🇸 +1</option>
+                  </select>
+                  <input
+                    type="tel"
+                    value={waPhone}
+                    onChange={(e) => setWaPhone(e.target.value)}
+                    placeholder="0501234567"
+                    dir="ltr"
+                    className="flex-1 h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-left text-base outline-none focus:border-green-400"
+                  />
+                </div>
               </div>
 
               <button
