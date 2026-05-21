@@ -28,6 +28,14 @@ export default function ProfilePage() {
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("התמונה גדולה מדי. גודל מקסימלי: 5MB");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      alert("יש לבחור קובץ תמונה בלבד");
+      return;
+    }
     setPhotoSheet(false);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;

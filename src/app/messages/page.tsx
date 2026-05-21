@@ -39,33 +39,22 @@ export default function MessagesPage() {
 
       const { data: convs } = await supabase
         .from("conversations")
-        .select("id, job_id, employer_id, applicant_id, created_at, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name)")
+        .select("id, job_id, employer_id, applicant_id, created_at, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name), messages(content, created_at)")
         .order("created_at", { ascending: false });
-
-      const { data: lastMsgs } = await supabase
-        .from("messages")
-        .select("conversation_id, content, created_at")
-        .in("conversation_id", (convs || []).map((c: { id: string }) => c.id))
-        .order("created_at", { ascending: false });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lastByConv: Record<string, any> = {};
-      (lastMsgs || []).forEach((m: { conversation_id: string; content: string; created_at: string }) => {
-        if (!lastByConv[m.conversation_id]) lastByConv[m.conversation_id] = m;
-      });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped: Conversation[] = (convs || []).map((c: any) => {
         const isEmployer = c.employer_id === user.id;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const otherProfile: any = isEmployer ? c.applicant : c.employer;
-        const last = lastByConv[c.id];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lastMsg = (c.messages || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         return {
           id: c.id,
           job_title: c.jobs?.title || "משרה",
           other_name: otherProfile?.first_name || "משתמש",
-          last_message: last?.content || "שיחה חדשה",
-          last_at: last?.created_at || c.created_at,
+          last_message: lastMsg?.content || "שיחה חדשה",
+          last_at: lastMsg?.created_at || c.created_at,
         };
       });
       setConversations(mapped);

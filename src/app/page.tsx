@@ -50,6 +50,10 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [searchText, setSearchText] = useState("");
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dbPage, setDbPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 20;
 
   // Drawer state
   const [selectedJob, setSelectedJob] = useState<(MockJob & { created_at?: string }) | null>(null);
@@ -72,6 +76,14 @@ export default function HomePage() {
     if (stored) {
       try { setFilters(JSON.parse(stored)); } catch {}
     }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.FILTERS) {
+        try { setFilters(e.newValue ? JSON.parse(e.newValue) : null); } catch {}
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setIsLoggedIn(!!user);
       if (user) {
@@ -132,32 +144,40 @@ export default function HomePage() {
       }
     });
 
-    supabase.from("jobs")
+    fetchJobs(0, true);
+  }, []);
+
+  const fetchJobs = async (page: number, reset: boolean) => {
+    if (reset) setLoadingMore(false);
+    else setLoadingMore(true);
+    const { data } = await supabase.from("jobs")
       .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at")
       .eq("active", true)
       .eq("frozen", false)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        const postedJobs = (data || []).map(j => ({
-          id: j.id,
-          title: j.title,
-          company: j.company_name || j.company_address || "חברה",
-          salary: j.salary || "",
-          location: (j.job_cities?.length ? j.job_cities.join(", ") : j.company_address) || "",
-          hours: j.start_time && j.end_time ? `${j.start_time}-${j.end_time}` : "",
-          categories: j.categories || [],
-          car: !!j.car,
-          license: !!j.license,
-          housing: !!j.housing,
-          weekend: !!j.weekend,
-          description: j.description || "",
-          requirements: j.requirements || [],
-          questions: [j.q1, j.q2, j.q3].filter(Boolean),
-          created_at: j.created_at,
-        }));
-        setUserJobs(postedJobs);
-      });
-  }, []);
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    const postedJobs = (data || []).map(j => ({
+      id: j.id,
+      title: j.title,
+      company: j.company_name || j.company_address || "חברה",
+      salary: j.salary || "",
+      location: (j.job_cities?.length ? j.job_cities.join(", ") : j.company_address) || "",
+      hours: j.start_time && j.end_time ? `${j.start_time}-${j.end_time}` : "",
+      categories: j.categories || [],
+      car: !!j.car,
+      license: !!j.license,
+      housing: !!j.housing,
+      weekend: !!j.weekend,
+      description: j.description || "",
+      requirements: j.requirements || [],
+      questions: [j.q1, j.q2, j.q3].filter(Boolean),
+      created_at: j.created_at,
+    }));
+    setUserJobs(prev => reset ? postedJobs : [...prev, ...postedJobs]);
+    setHasMore((data || []).length === PAGE_SIZE);
+    setDbPage(page);
+    setLoadingMore(false);
+  };
 
   const clearFilters = () => {
     localStorage.removeItem(STORAGE_KEYS.FILTERS);
@@ -456,6 +476,18 @@ export default function HomePage() {
             </div>
           );
         })}
+        {/* Load more */}
+        {hasMore && !searchText && !activeCategory && !filters && (
+          <button
+            onClick={() => fetchJobs(dbPage + 1, false)}
+            disabled={loadingMore}
+            className="w-full h-12 border border-gray-200 rounded-2xl text-sm font-bold text-gray-500 active:bg-gray-50 flex items-center justify-center gap-2"
+          >
+            {loadingMore ? (
+              <span className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+            ) : "טען עוד משרות"}
+          </button>
+        )}
       </main>
 
       <BottomNav />
