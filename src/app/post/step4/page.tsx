@@ -1,0 +1,174 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import posthog from "posthog-js";
+import { ChevronRight, Check } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { STORAGE_KEYS, myJobsKey } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
+
+const STORAGE_KEY = STORAGE_KEYS.POST_STEP_3;
+
+export default function PostJobStep4Page() {
+  const router = useRouter();
+  const [q1, setQ1] = useState("");
+  const [q2, setQ2] = useState("");
+  const [q3, setQ3] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const d = JSON.parse(saved);
+      if (d.q1 !== undefined) setQ1(d.q1);
+      if (d.q2 !== undefined) setQ2(d.q2);
+      if (d.q3 !== undefined) setQ3(d.q3);
+    } catch {}
+  }, []);
+
+  const handlePublish = async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ q1, q2, q3 }));
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const step1 = JSON.parse(localStorage.getItem(STORAGE_KEYS.POST_STEP_1) || "{}");
+    const step2 = JSON.parse(localStorage.getItem(STORAGE_KEYS.POST_STEP_2) || "{}");
+    const newJob = {
+      title: step1.jobTitle || "משרה חדשה",
+      companyName: step1.companyName || "",
+      description: step1.description || "",
+      categories: step1.selectedCategories || [],
+      otherText: step1.otherText || "",
+      logoPreview: step1.logoPreview || null,
+      companyAddress: step1.selectedCities?.[0] || step1.selectedStates?.[0] || "",
+      jobStates: step1.selectedStates || [],
+      jobCities: step1.selectedCities || [],
+      salary: step2.salary || "",
+      startTime: step2.startTime || "",
+      endTime: step2.endTime || "",
+      weekend: step2.weekend || false,
+      holidays: step2.holidays || false,
+      license: step2.license || false,
+      car: step2.car || false,
+      housing: step2.housing || false,
+      q1, q2, q3,
+    };
+
+    const { error } = await supabase.from("jobs").insert({
+      created_by: user?.id,
+      title: newJob.title,
+      company_name: newJob.companyName,
+      company_address: newJob.companyAddress,
+      job_states: newJob.jobStates,
+      job_cities: newJob.jobCities,
+      salary: newJob.salary,
+      start_time: newJob.startTime,
+      end_time: newJob.endTime,
+      categories: newJob.categories,
+      description: newJob.description,
+      requirements: step1.requirements || [],
+      logo_url: newJob.logoPreview,
+      car: newJob.car,
+      license: newJob.license,
+      housing: newJob.housing,
+      weekend: newJob.weekend,
+      holidays: newJob.holidays,
+      q1: newJob.q1,
+      q2: newJob.q2,
+      q3: newJob.q3,
+    });
+
+    if (error) { alert("שגיאה בשמירת המשרה: " + error.message); return; }
+    posthog.capture("job_posted", { job_title: newJob.title, company: newJob.companyName, categories: newJob.categories });
+    localStorage.removeItem(STORAGE_KEYS.POST_STEP_1);
+    localStorage.removeItem(STORAGE_KEYS.POST_STEP_2);
+    localStorage.removeItem(STORAGE_KEYS.POST_STEP_3);
+    setSuccess(true);
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+
+      <header className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+            <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          </button>
+          <h1 className="text-lg font-bold text-gray-900">פרסום משרה</h1>
+          <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+        </div>
+        <div className="flex items-center gap-2">
+          {[1, 2, 3, 4].map(s => (
+            <div key={s} className="flex items-center gap-2 flex-1">
+              <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shrink-0 ${
+                s < 4 ? "bg-blue-700 text-white" : s === 4 ? "bg-blue-700 text-white" : "bg-gray-200 text-gray-400"
+              }`}>
+                {s < 4 ? <Check size={14} strokeWidth={3} /> : s}
+              </div>
+              {s < 4 && <div className={`h-1 flex-1 rounded-full ${s < 4 ? "bg-blue-700" : "bg-gray-200"}`} />}
+            </div>
+          ))}
+        </div>
+      </header>
+
+      <main className="flex-1 px-4 pt-6 pb-32 flex flex-col gap-6">
+
+        <div className="text-right">
+          <h2 className="text-2xl font-black text-blue-900">שאלות לסינון</h2>
+          <p className="text-sm text-gray-400 mt-1">שאלות שהמועמד חייב לענות עליהם</p>
+        </div>
+
+        {[
+          { label: "שאלה 1", value: q1, set: setQ1 },
+          { label: "שאלה 2", value: q2, set: setQ2 },
+          { label: "שאלה 3", value: q3, set: setQ3 },
+        ].map(({ label, value, set }) => (
+          <div key={label} className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between" style={{ direction: "ltr" }}>
+              <span className="text-xs text-gray-400">אופציונלי</span>
+              <span className="text-base font-bold text-gray-900">{label}</span>
+            </div>
+            <textarea
+              placeholder="כתוב את השאלה כאן..."
+              value={value}
+              onChange={(e) => set(e.target.value)}
+              dir="rtl"
+              rows={4}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-right text-base outline-none focus:border-blue-500 placeholder:text-gray-300 resize-none"
+            />
+          </div>
+        ))}
+
+      </main>
+
+      {success && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+            <div className="bg-white rounded-3xl w-full px-6 py-10 flex flex-col items-center gap-5 shadow-xl">
+              <div className="text-5xl">🎉</div>
+              <h2 className="text-xl font-black text-gray-900 text-center">פרסום בוצע בהצלחה!</h2>
+              <p className="text-sm text-gray-400 text-center">המשרה שלך פורסמה ומועמדים יוכלו לראות אותה</p>
+              <button
+                onClick={() => router.push("/")}
+                className="w-full h-13 bg-blue-700 text-white font-bold text-base rounded-2xl active:bg-blue-800 transition-colors"
+              >
+                חזרה לדף הבית
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">
+        <button
+          onClick={handlePublish}
+          className="w-full h-14 bg-blue-700 text-white font-bold text-lg rounded-2xl active:bg-blue-800 transition-colors"
+        >
+          פרסם משרה
+        </button>
+      </div>
+    </div>
+  );
+}

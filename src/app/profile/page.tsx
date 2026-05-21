@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, Search, PlusCircle, LogOut, UserPen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,6 +20,25 @@ const accountItems: { icon: React.ElementType; label: string; bold: boolean; hre
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [photoSheet, setPhotoSheet] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoSheet(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const ext = file.name.split(".").pop();
+    const path = `avatars/${user.id}.${ext}`;
+    await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = data.publicUrl + "?t=" + Date.now();
+    setAvatarUrl(url);
+    await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -47,10 +66,17 @@ export default function ProfilePage() {
         {/* Profile hero */}
         <div className="bg-gray-100 flex flex-col items-center py-8 px-4">
           <div className="relative mb-4">
-            <div className="w-28 h-28 rounded-full bg-gray-300" />
-            <button className="absolute bottom-1 right-1 w-9 h-9 bg-white rounded-full border border-gray-200 flex items-center justify-center shadow-sm">
+            <button onClick={() => setPhotoSheet(true)} className="w-28 h-28 rounded-full overflow-hidden bg-gray-300 block">
+              {avatarUrl
+                ? <Image src={avatarUrl} alt="תמונת פרופיל" width={112} height={112} className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-gray-300" />
+              }
+            </button>
+            <button onClick={() => setPhotoSheet(true)} className="absolute bottom-1 right-1 w-9 h-9 bg-white rounded-full border border-gray-200 flex items-center justify-center shadow-sm">
               <Camera size={18} className="text-gray-600" strokeWidth={1.8} />
             </button>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelected} />
+            <input ref={galleryInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelected} />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-1">
             {firstName ? `ברוך הבא, ${firstName}` : "ברוך הבא ל-Hevre"}
@@ -151,6 +177,30 @@ export default function ProfilePage() {
       </main>
 
       <BottomNav />
+
+      {/* Photo picker sheet */}
+      {photoSheet && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setPhotoSheet(false)} />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl px-5 pt-5 pb-10 flex flex-col gap-3" dir="rtl">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-2" />
+            <p className="text-base font-black text-gray-900 text-center mb-1">בחר תמונת פרופיל</p>
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl active:bg-blue-800 flex items-center justify-center gap-2"
+            >
+              <Camera size={20} strokeWidth={2} />
+              צלם תמונה
+            </button>
+            <button
+              onClick={() => galleryInputRef.current?.click()}
+              className="w-full h-14 border border-gray-200 text-gray-700 font-bold text-base rounded-2xl active:bg-gray-50 flex items-center justify-center gap-2"
+            >
+              🖼️ בחר מהגלריה
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

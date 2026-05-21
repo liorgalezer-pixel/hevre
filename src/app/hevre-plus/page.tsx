@@ -36,8 +36,7 @@ const PLANS = [
       "פרסום משרות ללא הגבלה",
       "וי כחול ואימות עסק בפרסום",
       "חשיפה מקסימלית בפיד",
-      "תמיכה VIP 24/7",
-      "כל יתרונות Pro כלולים",
+      "תמיכה VIP",
     ],
     notIncluded: [],
     cta: "שדרג ל-Hevre+",
@@ -129,15 +128,15 @@ export default function HevrePlusPage() {
 
               <div className="bg-white px-5 py-4 flex flex-col gap-2">
                 {plan.features.map((f) => (
-                  <div key={f} className="flex items-center gap-2 justify-end">
-                    <span className="text-sm text-gray-700">{f}</span>
+                  <div key={f} className="flex items-center gap-2" style={{ direction: "rtl" }}>
                     <span className="text-green-500 font-black text-base shrink-0">✓</span>
+                    <span className="text-sm text-gray-700">{f}</span>
                   </div>
                 ))}
                 {plan.notIncluded.map((f) => (
-                  <div key={f} className="flex items-center gap-2 justify-end">
-                    <span className="text-sm text-gray-300">{f}</span>
+                  <div key={f} className="flex items-center gap-2" style={{ direction: "rtl" }}>
                     <span className="text-gray-300 font-black text-base shrink-0">✗</span>
+                    <span className="text-sm text-gray-300">{f}</span>
                   </div>
                 ))}
               </div>

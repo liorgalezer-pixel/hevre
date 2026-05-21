@@ -49,6 +49,7 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
       const c = US_CITIES.find((u) => cityKey(u) === city);
       return c && next.includes(c.stateAbbr);
     }));
+    setStateOpen(false);
   }, [selectedStates, selectedCities, onStatesChange, onCitiesChange]);
 
   const toggleCity = useCallback((key: string) => {
@@ -57,6 +58,7 @@ export default function LocationPicker({ selectedStates, selectedCities, onState
         ? selectedCities.filter((c) => c !== key)
         : [...selectedCities, key]
     );
+    setCityOpen(false);
   }, [selectedCities, onCitiesChange]);
 
   const openStateDropdown = useCallback(() => { setStateOpen((v) => !v); setCityOpen(false); }, []);

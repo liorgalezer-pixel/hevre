@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { ChevronRight, Search, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, Home, PlusCircle, User, ChevronLeft } from "lucide-react";
+import { ChevronRight, Search, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, Home, PlusCircle, User, ChevronLeft, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -49,12 +49,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const router = useRouter();
   const { id } = use(params);
   const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [confirmFreeze, setConfirmFreeze] = useState(false);
   const [frozen, setFrozen] = useState(false);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [viewCount, setViewCount] = useState(0);
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
+  const [showArchivedApplicants, setShowArchivedApplicants] = useState(false);
 
   const loadApplicants = async () => {
     const { data } = await supabase
@@ -81,7 +83,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { setLoading(false); return; }
       const { data: found } = await supabase
         .from("jobs").select("*")
         .eq("id", id).eq("created_by", user.id).single();
@@ -94,6 +96,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         .eq("job_id", id);
       setViewCount(vCount || 0);
       await loadApplicants();
+      setLoading(false);
     })();
   }, [id]);
 
@@ -138,6 +141,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setSelectedApplicant(null);
     await loadApplicants();
   };
+
+  if (loading) return (
+    <div className="flex flex-col min-h-screen items-center justify-center" dir="rtl">
+      <div className="w-8 h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   if (!job) return (
     <div className="flex flex-col min-h-screen items-center justify-center gap-4" dir="rtl">
@@ -212,7 +221,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <button onClick={() => router.push("/messages")} className="text-yellow-500 font-bold text-base active:opacity-70">לצ׳אט</button>
           <div className="flex items-center gap-2">
             <MessageCircle size={24} className="text-gray-700" strokeWidth={1.6} />
-            <span className="text-sm text-gray-600">יש לך {approved.length} שיחות פתוחות</span>
+            {approved.length > 0 && (
+              <span className="text-sm text-gray-600">יש לך {approved.length} שיחות פתוחות</span>
+            )}
           </div>
         </div>
 
@@ -281,13 +292,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <div key={a.id} className="flex items-center justify-between bg-green-50 rounded-xl px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         await supabase.from("applications").update({ status: "archived" }).eq("id", a.id);
                         await loadApplicants();
                       }}
-                      className="text-[10px] font-semibold text-gray-400 border border-gray-200 rounded-lg px-2 py-1 active:bg-gray-100"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-gray-100"
+                      title="העבר לארכיון"
                     >
-                      ארכיון
+                      <Archive size={16} className="text-gray-400" strokeWidth={1.8} />
                     </button>
                     <button
                       onClick={async () => {
@@ -314,10 +327,26 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           {/* Archived */}
           {archived.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold text-gray-400 text-right">ארכיון מועמדים שאושרו ({archived.length})</p>
-              {archived.map(a => (
+              <div
+                onClick={() => setShowArchivedApplicants(v => !v)}
+                className="flex items-center justify-between w-full cursor-pointer"
+                style={{ direction: "rtl" }}
+              >
+                <p className="text-xs font-semibold text-gray-400">ארכיון מאושרים ({archived.length})</p>
+                <ChevronDown size={14} className={`text-gray-400 transition-transform ${showArchivedApplicants ? "rotate-180" : ""}`} strokeWidth={2} />
+              </div>
+              {showArchivedApplicants && archived.map(a => (
                 <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
-                  <span className="text-[10px] text-gray-400 border border-gray-200 rounded-lg px-2 py-1">בארכיון</span>
+                  <button
+                    onClick={async () => {
+                      await supabase.from("applications").update({ status: "approved" }).eq("id", a.id);
+                      await loadApplicants();
+                    }}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-gray-100"
+                    title="הוצא מארכיון"
+                  >
+                    <ArchiveRestore size={16} className="text-blue-400" strokeWidth={1.8} />
+                  </button>
                   <span className="text-sm font-medium text-gray-500">{a.name}</span>
                 </div>
               ))}

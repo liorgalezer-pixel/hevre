@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import LocationPicker from "@/components/LocationPicker";
@@ -14,6 +14,7 @@ export default function FilterPage() {
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [hoursEnabled, setHoursEnabled] = useState(false);
   const [fromTime, setFromTime] = useState("09:00");
   const [toTime, setToTime] = useState("17:00");
   const [license, setLicense] = useState(false);
@@ -51,8 +52,8 @@ export default function FilterPage() {
       categories: selectedCats,
       states: selectedStates,
       cities: selectedCities,
-      fromTime,
-      toTime,
+      fromTime: hoursEnabled ? fromTime : null,
+      toTime: hoursEnabled ? toTime : null,
       license,
       car,
       housing,
@@ -84,9 +85,7 @@ export default function FilterPage() {
           <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
             <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
           </button>
-          <button className="w-11 h-11 flex items-center justify-center">
-            <Settings size={20} className="text-gray-500" strokeWidth={1.8} />
-          </button>
+          <div className="w-11" />
         </div>
         <h1 className="text-lg font-bold text-gray-900">סינון</h1>
         <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
@@ -131,30 +130,40 @@ export default function FilterPage() {
 
         {/* Time range */}
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-gray-500 text-right">שעות עבודה</p>
-          <div className="flex items-center justify-center gap-4">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xs text-gray-400 font-medium">סיום</span>
-              <select
-                value={toTime}
-                onChange={(e) => setToTime(e.target.value)}
-                className="h-11 w-24 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white text-center"
-              >
-                {hours.map((h) => <option key={h}>{h}</option>)}
-              </select>
-            </div>
-            <span className="text-gray-300 font-bold text-lg mt-4">—</span>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xs text-gray-400 font-medium">התחלה</span>
-              <select
-                value={fromTime}
-                onChange={(e) => setFromTime(e.target.value)}
-                className="h-11 w-24 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white text-center"
-              >
-                {hours.map((h) => <option key={h}>{h}</option>)}
-              </select>
-            </div>
+          <div className="flex items-center justify-between" style={{ direction: "ltr" }}>
+            <button
+              onClick={() => setHoursEnabled(v => !v)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${hoursEnabled ? "bg-blue-600" : "bg-gray-300"}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${hoursEnabled ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+            <p className="text-sm font-semibold text-gray-700">שעות עבודה</p>
           </div>
+          {hoursEnabled && (
+            <div className="flex items-center justify-center gap-4">
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-gray-400 font-medium">סיום</span>
+                <select
+                  value={toTime}
+                  onChange={(e) => setToTime(e.target.value)}
+                  className="h-11 w-24 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white text-center"
+                >
+                  {hours.map((h) => <option key={h}>{h}</option>)}
+                </select>
+              </div>
+              <span className="text-gray-300 font-bold text-lg mt-4">—</span>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs text-gray-400 font-medium">התחלה</span>
+                <select
+                  value={fromTime}
+                  onChange={(e) => setFromTime(e.target.value)}
+                  className="h-11 w-24 border border-gray-200 rounded-xl px-3 text-sm text-gray-800 outline-none bg-white text-center"
+                >
+                  {hours.map((h) => <option key={h}>{h}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Toggles */}

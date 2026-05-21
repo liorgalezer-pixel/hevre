@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, ImageIcon } from "lucide-react";
+import { ChevronRight, ImageIcon, Check } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/categories";
@@ -63,7 +63,7 @@ function PostJobContent() {
       const isNew = searchParams.get("new") === "1";
       if (isNew) {
         const allJobs = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALL_JOBS) || "[]");
-      const existingJobs = allJobs.filter((j: { createdBy?: string }) => j.createdBy === uid);
+        const existingJobs = allJobs.filter((j: { createdBy?: string }) => j.createdBy === uid);
         if (existingJobs.length >= 2) {
           setShowLimitModal(true);
           setDataLoaded(true);
@@ -95,9 +95,7 @@ function PostJobContent() {
   }, [searchParams]);
 
   const toggleCategory = (id: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+    setSelectedCategories((prev) => prev.includes(id) ? [] : [id]);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,6 +113,11 @@ function PostJobContent() {
     }));
   }, [jobTitle, companyName, selectedStates, selectedCities, selectedCategories, otherText, description, logoPreview, requirements, dataLoaded]);
 
+  const canContinue =
+    companyName.trim().length > 0 &&
+    (selectedStates.length > 0 || selectedCities.length > 0) &&
+    selectedCategories.length > 0;
+
   const handleContinue = () => {
     posthog.capture("post_job_step", { step: 1, step_name: "basic_info" });
     router.push("/post/step2");
@@ -124,12 +127,26 @@ function PostJobContent() {
     <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
 
       {/* Header */}
-      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
-        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
-        </button>
-        <h1 className="text-lg font-bold text-gray-900">דף פרסום משרה</h1>
-        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+      <header className="bg-white px-4 pt-12 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+            <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          </button>
+          <h1 className="text-lg font-bold text-gray-900">פרסום משרה</h1>
+          <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+        </div>
+        <div className="flex items-center gap-2">
+          {[1, 2, 3, 4].map(s => (
+            <div key={s} className="flex items-center gap-2 flex-1">
+              <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shrink-0 ${
+                s === 1 ? "bg-blue-700 text-white" : "bg-gray-200 text-gray-400"
+              }`}>
+                {s}
+              </div>
+              {s < 4 && <div className="h-1 flex-1 rounded-full bg-gray-200" />}
+            </div>
+          ))}
+        </div>
       </header>
 
       <main className="flex-1 px-4 pt-6 pb-32 flex flex-col gap-5">
@@ -160,7 +177,7 @@ function PostJobContent() {
 
         {/* Company name */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-base font-bold text-gray-900 text-right">שם החברה</label>
+          <label className="text-base font-bold text-gray-900 text-right">שם החברה <span className="text-red-500">*</span></label>
           <input
             type="text"
             placeholder="שם החברה"
@@ -173,7 +190,7 @@ function PostJobContent() {
 
         {/* Location */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-base font-bold text-gray-900 text-right">מיקום המשרה</label>
+          <label className="text-base font-bold text-gray-900 text-right">מיקום המשרה <span className="text-red-500">*</span></label>
           <LocationPicker
             selectedStates={selectedStates}
             selectedCities={selectedCities}
@@ -184,22 +201,20 @@ function PostJobContent() {
 
         {/* Category */}
         <div className="flex flex-col gap-3">
-          <label className="text-base font-bold text-gray-900 text-right">קטגוריה</label>
-          <div className="flex flex-wrap gap-2 justify-end">
+          <label className="text-base font-bold text-gray-900 text-right">קטגוריה <span className="text-red-500">*</span></label>
+          <div className="grid grid-cols-3 gap-2">
             {CATEGORIES.map(({ id, label, icon: Icon }) => {
               const active = selectedCategories.includes(id);
               return (
                 <button
                   key={id}
                   onClick={() => toggleCategory(id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-colors ${
-                    active
-                      ? "bg-blue-700 text-white border-blue-700"
-                      : "bg-blue-50 text-gray-700 border-blue-100"
+                  className={`flex flex-col items-center justify-center gap-2 h-20 rounded-2xl border-2 transition-all ${
+                    active ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
                   }`}
                 >
-                  <span>{label}</span>
-                  <Icon size={16} strokeWidth={1.6} />
+                  <Icon size={26} className={active ? "text-blue-700" : "text-gray-500"} strokeWidth={1.5} />
+                  <span className={`text-xs font-semibold ${active ? "text-blue-700" : "text-gray-600"}`}>{label}</span>
                 </button>
               );
             })}
@@ -216,63 +231,6 @@ function PostJobContent() {
           )}
         </div>
 
-        {/* Job title */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-base font-bold text-gray-900 text-right">שם המשרה</label>
-          <input
-            type="text"
-            placeholder="לדוגמא: מנהל מכירות, נהג משאית..."
-            value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
-            dir="rtl"
-            className="w-full h-13 rounded-xl border border-gray-200 bg-white px-4 text-right text-base outline-none focus:border-blue-500 placeholder:text-gray-300"
-          />
-        </div>
-
-        {/* Description */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-base font-bold text-gray-900 text-right">תאור המשרה</label>
-          <textarea
-            placeholder="תאר את המשרה..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            dir="rtl"
-            rows={5}
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-right text-base outline-none focus:border-blue-500 placeholder:text-gray-300 resize-none"
-          />
-        </div>
-
-        {/* Requirements */}
-        <div className="flex flex-col gap-2">
-          <label className="text-base font-bold text-gray-900 text-right">דרישות תפקיד</label>
-          <div className="flex flex-col gap-2">
-            {requirements.map((req, i) => (
-              <div key={i} className="flex items-center gap-2" style={{ direction: "rtl" }}>
-                <span className="text-green-500 shrink-0 text-lg">✓</span>
-                <input
-                  type="text"
-                  value={req}
-                  placeholder="הוסף דרישה..."
-                  onChange={(e) => updateRequirement(i, e.target.value)}
-                  dir="rtl"
-                  className="flex-1 h-11 rounded-xl border border-gray-200 bg-white px-3 text-right text-sm outline-none focus:border-blue-500 placeholder:text-gray-300"
-                />
-                {requirements.length > 1 && (
-                  <button onClick={() => removeRequirement(i)} className="w-8 h-8 flex items-center justify-center text-gray-300 active:text-red-400 shrink-0">
-                    <X size={16} strokeWidth={2} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={addRequirement}
-            disabled={requirements.length >= 6 || requirements[requirements.length - 1].trim() === ""}
-            className="self-start flex items-center gap-1.5 text-sm font-bold mt-1 disabled:opacity-30 text-blue-700 active:opacity-70"
-          >
-            <span className="text-lg leading-none">+</span> הוסף דרישה
-          </button>
-        </div>
 
       </main>
 
@@ -280,7 +238,8 @@ function PostJobContent() {
       <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">
         <button
           onClick={handleContinue}
-          className="w-full h-14 bg-blue-700 text-white font-bold text-lg rounded-2xl active:bg-blue-800 transition-colors"
+          disabled={!canContinue}
+          className="w-full h-14 bg-blue-700 text-white font-bold text-lg rounded-2xl active:bg-blue-800 transition-colors disabled:opacity-40"
         >
           המשך
         </button>
