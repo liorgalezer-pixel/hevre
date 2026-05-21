@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LocationPicker from "@/components/LocationPicker";
 import Toggle from "@/components/Toggle";
 import { CATEGORIES } from "@/lib/categories";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { supabase } from "@/lib/supabase";
 
 export default function NewAlertPage() {
   return <Suspense><NewAlertContent /></Suspense>;
@@ -27,44 +27,42 @@ function NewAlertContent() {
   const [weekend, setWeekend] = useState(false);
   const [holidays, setHolidays] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!editId) return;
-    const alerts = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
-    const existing = alerts.find((a: { id: string }) => a.id === editId);
-    if (!existing) return;
-    setAlertName(existing.name || "");
-    setSelectedCats(existing.categories || []);
-    setSelectedStates(existing.states || []);
-    setSelectedCities(existing.cities || []);
-    setLicense(existing.license || false);
-    setCar(existing.car || false);
-    setWeekend(existing.weekend || false);
-    setHolidays(existing.holidays || false);
+    (async () => {
+      const { data } = await supabase.from("job_alerts").select("*").eq("id", editId).single();
+      if (!data) return;
+      setAlertName(data.name || "");
+      setSelectedCats(data.categories || []);
+      setSelectedStates(data.states || []);
+      setSelectedCities(data.cities || []);
+      setLicense(data.license || false);
+      setCar(data.car || false);
+      setWeekend(data.weekend || false);
+      setHolidays(data.holidays || false);
+    })();
   }, [editId]);
 
   const toggleCat = (id: string) =>
     setSelectedCats((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedCats.length === 0) return;
-    const alerts = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
-    const payload = {
-      id: editId || Date.now().toString(),
-      name: alertName || selectedCats.map(id => CATEGORIES.find(c => c.id === id)?.label).join(", "),
-      categories: selectedCats,
-      states: selectedStates,
-      cities: selectedCities,
-      license,
-      car,
-      weekend,
-      holidays,
-      createdAt: editId ? (alerts.find((a: { id: string }) => a.id === editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
-    };
-    const updated = editId
-      ? alerts.map((a: { id: string }) => a.id === editId ? payload : a)
-      : [...alerts, payload];
-    localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(updated));
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    const name = alertName || selectedCats.map(id => CATEGORIES.find(c => c.id === id)?.label).join(", ");
+    const payload = { name, categories: selectedCats, states: selectedStates, cities: selectedCities, license, car, weekend, holidays };
+
+    if (editId) {
+      await supabase.from("job_alerts").update(payload).eq("id", editId);
+    } else {
+      await supabase.from("job_alerts").insert({ ...payload, user_id: user.id });
+    }
+    setSaving(false);
     setSaved(true);
   };
 
@@ -93,7 +91,6 @@ function NewAlertContent() {
   return (
     <div className="flex flex-col min-h-screen bg-white" dir="rtl">
 
-      {/* Header */}
       <header className="px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
           <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
@@ -109,7 +106,6 @@ function NewAlertContent() {
           <p className="text-sm text-gray-400">קבל עדכון ברגע שתעלה משרה שמתאימה לך</p>
         </div>
 
-        {/* Alert name */}
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-gray-500 text-right">שם ההתראה (אופציונלי)</p>
           <input
@@ -121,7 +117,6 @@ function NewAlertContent() {
           />
         </div>
 
-        {/* Categories */}
         <div className="flex flex-col gap-3">
           <p className="text-sm font-semibold text-gray-500 text-right">
             קטגוריית עבודה <span className="text-red-400">*</span>
@@ -148,7 +143,6 @@ function NewAlertContent() {
           )}
         </div>
 
-        {/* Location */}
         <LocationPicker
           selectedStates={selectedStates}
           selectedCities={selectedCities}
@@ -156,7 +150,6 @@ function NewAlertContent() {
           onCitiesChange={setSelectedCities}
         />
 
-        {/* Toggles */}
         <div className="flex flex-col gap-4">
           <p className="text-sm font-semibold text-gray-500 text-right">תנאים נוספים</p>
           {[
@@ -174,19 +167,17 @@ function NewAlertContent() {
 
       </main>
 
-      {/* Save button */}
       <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-5 py-4">
         <button
           onClick={handleSave}
-          disabled={selectedCats.length === 0}
+          disabled={selectedCats.length === 0 || saving}
           className={`w-full h-14 font-black text-base rounded-2xl flex items-center justify-center gap-2 transition-colors ${
-            selectedCats.length > 0
+            selectedCats.length > 0 && !saving
               ? "bg-blue-700 text-white active:bg-blue-800"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
           }`}
         >
-          <Bell size={18} strokeWidth={2} />
-          שמור התראה
+          {saving ? <span className="animate-pulse">שומר...</span> : <><Bell size={18} strokeWidth={2} />שמור התראה</>}
         </button>
       </div>
     </div>

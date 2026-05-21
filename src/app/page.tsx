@@ -44,6 +44,7 @@ export default function HomePage() {
   const [rejectedApps, setRejectedApps] = useState<{ jobId: string; title: string }[]>([]);
   const [rejectedJobIds, setRejectedJobIds] = useState<Set<string>>(new Set());
   const [newApplicants, setNewApplicants] = useState<{ jobId: string; jobTitle: string; applicantName: string }[]>([]);
+  const [alertNotifs, setAlertNotifs] = useState<{ id: string; jobId: string; jobTitle: string; alertName: string }[]>([]);
   const [userJobs, setUserJobs] = useState<(MockJob & { created_at?: string })[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedStorageKey, setSavedStorageKey] = useState<string | null>(null);
@@ -120,6 +121,20 @@ export default function HomePage() {
           .eq("applicant_id", user.id)
           .eq("status", "rejected");
         setRejectedJobIds(new Set((allRejected || []).map((a: { job_id: string }) => a.job_id)));
+
+        // Alert notifications
+        const { data: alertNotifData } = await supabase
+          .from("alert_notifications")
+          .select("id, job_id, job_title, alert_name")
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .order("created_at", { ascending: false });
+        setAlertNotifs((alertNotifData || []).map((n: { id: string; job_id: string; job_title: string; alert_name: string }) => ({
+          id: n.id,
+          jobId: n.job_id,
+          jobTitle: n.job_title,
+          alertName: n.alert_name,
+        })));
 
         const { data: myJobs } = await supabase
           .from("jobs").select("id, title").eq("created_by", user.id);
@@ -271,7 +286,7 @@ export default function HomePage() {
             <div ref={bellRef} className="relative">
               <button onClick={() => setBellOpen((v) => !v)} className="relative w-11 h-11 flex items-center justify-center">
                 <Bell size={26} className="text-gray-700" strokeWidth={1.8} />
-                {(approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0) && (
+                {(approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
                   <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full" />
                 )}
               </button>
@@ -279,12 +294,16 @@ export default function HomePage() {
                 <div className="absolute top-12 right-0 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 w-72 p-4 flex flex-col gap-2" dir="rtl">
                   <div className="flex items-center justify-between mb-1" style={{ direction: "ltr" }}>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const now = new Date().toISOString();
                         localStorage.setItem("hevre_notif_cleared_at", now);
                         setNewApplicants([]);
                         setApprovedApps([]);
                         setRejectedApps([]);
+                        if (alertNotifs.length > 0) {
+                          await supabase.from("alert_notifications").update({ read: true }).in("id", alertNotifs.map(n => n.id));
+                          setAlertNotifs([]);
+                        }
                       }}
                       className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200"
                     >
@@ -317,7 +336,15 @@ export default function HomePage() {
                         <span className="text-gray-700 font-medium">{app.title}</span>
                       </button>
                     ))}
-                    {approvedApps.length === 0 && rejectedApps.length === 0 && newApplicants.length === 0 && (
+                    {alertNotifs.map((n) => (
+                      <button key={n.id} onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}/view`); }}
+                        className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-purple-100">
+                        <span className="text-purple-700 font-bold text-xs">🔔 משרה חדשה מתאימה!</span>
+                        <span className="text-gray-700 font-medium">{n.jobTitle}</span>
+                        <span className="text-gray-400 text-xs">התראה: {n.alertName}</span>
+                      </button>
+                    ))}
+                    {approvedApps.length === 0 && rejectedApps.length === 0 && newApplicants.length === 0 && alertNotifs.length === 0 && (
                       <p className="bg-gray-50 rounded-xl px-3 py-2.5">אין הודעות חדשות כרגע</p>
                     )}
                   </div>

@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
 
 type Alert = {
@@ -19,7 +18,7 @@ type Alert = {
   car: boolean;
   weekend: boolean;
   holidays: boolean;
-  createdAt: string;
+  created_at: string;
 };
 
 export default function AlertsPage() {
@@ -30,20 +29,20 @@ export default function AlertsPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setIsLoggedIn(false); setLoaded(true); return; }
       setIsLoggedIn(true);
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.ALERTS) || "[]");
-      setAlerts(stored);
+      const { data } = await supabase.from("job_alerts").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      setAlerts(data || []);
       setLoaded(true);
-    });
+    })();
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!confirmDeleteId) return;
-    const updated = alerts.filter((a) => a.id !== confirmDeleteId);
-    setAlerts(updated);
-    localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(updated));
+    await supabase.from("job_alerts").delete().eq("id", confirmDeleteId);
+    setAlerts(prev => prev.filter(a => a.id !== confirmDeleteId));
     setConfirmDeleteId(null);
   };
 
@@ -73,7 +72,6 @@ export default function AlertsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">
 
-      {/* Header */}
       <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
           <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
@@ -120,7 +118,7 @@ export default function AlertsPage() {
                   <div className="flex-1 text-right">
                     <p className="text-base font-black text-gray-900">{alert.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      נוצרה ב-{new Date(alert.createdAt).toLocaleDateString("he-IL")}
+                      נוצרה ב-{new Date(alert.created_at).toLocaleDateString("he-IL")}
                     </p>
                   </div>
                   <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center shrink-0">
@@ -131,14 +129,12 @@ export default function AlertsPage() {
                 <div className="flex flex-wrap gap-1.5 justify-start">
                   {(alert.categories || []).map((cat) => (
                     <span key={cat} className="flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">
-                      <Tag size={10} strokeWidth={2} />
-                      {cat}
+                      <Tag size={10} strokeWidth={2} />{cat}
                     </span>
                   ))}
                   {(alert.states || []).map((s) => (
                     <span key={s} className="flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
-                      <MapPin size={10} strokeWidth={2} />
-                      {s}
+                      <MapPin size={10} strokeWidth={2} />{s}
                     </span>
                   ))}
                   {(alert.cities || []).map((c) => (
@@ -175,7 +171,6 @@ export default function AlertsPage() {
         )}
       </main>
 
-      {/* Confirm delete modal */}
       {confirmDeleteId && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmDeleteId(null)} />
