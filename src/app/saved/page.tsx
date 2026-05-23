@@ -102,8 +102,8 @@ export default function SavedPage() {
 
       <main className="flex-1 px-4 pt-5 pb-28">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-gray-400">{filtered.length} משרות</span>
           <h2 className="text-xl font-black text-gray-900">מודעות שאהבתי</h2>
+          <span className="text-sm text-gray-400">{filtered.length} משרות</span>
         </div>
 
         {filtered.length === 0 ? (

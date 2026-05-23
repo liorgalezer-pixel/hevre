@@ -107,7 +107,7 @@ function NewAlertContent() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-gray-500 text-right">שם ההתראה (אופציונלי)</p>
+          <p className="text-sm font-semibold text-gray-500 text-right">שם ההתראה</p>
           <input
             type="text"
             value={alertName}

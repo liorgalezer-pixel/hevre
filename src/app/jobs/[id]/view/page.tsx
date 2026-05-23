@@ -166,7 +166,19 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
           <button onClick={() => setSaved((v) => !v)} className="w-11 h-11 flex items-center justify-center">
             <Heart size={22} className={saved ? "text-red-500 fill-red-500" : "text-gray-400"} strokeWidth={1.8} />
           </button>
-          <button className="w-11 h-11 flex items-center justify-center">
+          <button
+            onClick={async () => {
+              const url = window.location.href;
+              const title = userJob?.title ?? "משרה ב-Hevre";
+              if (navigator.share) {
+                await navigator.share({ title, url });
+              } else {
+                await navigator.clipboard.writeText(url);
+                alert("הקישור הועתק!");
+              }
+            }}
+            className="w-11 h-11 flex items-center justify-center"
+          >
             <Share2 size={22} className="text-gray-400" strokeWidth={1.8} />
           </button>
         </div>

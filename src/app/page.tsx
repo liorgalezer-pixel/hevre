@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, ChevronDown } from "lucide-react";
+import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, ChevronDown, Share2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
@@ -84,7 +84,6 @@ export default function HomePage() {
       }
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       setIsLoggedIn(!!user);
       if (user) {
@@ -160,6 +159,7 @@ export default function HomePage() {
     });
 
     fetchJobs(0, true);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const fetchJobs = async (page: number, reset: boolean) => {
@@ -495,11 +495,6 @@ export default function HomePage() {
                 {job.housing && <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">🏠 כולל דיור</span>}
               </div>
 
-              {/* CTA hint */}
-              <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-                <ChevronDown size={16} className="text-gray-300" />
-                <span className="text-xs text-blue-600 font-semibold">לחץ לפרטים ולהגשת מועמדות</span>
-              </div>
             </div>
           );
         })}
@@ -540,6 +535,20 @@ export default function HomePage() {
                     <Drawer.Close className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200 shrink-0">
                       <X size={18} className="text-gray-600" strokeWidth={2} />
                     </Drawer.Close>
+                    <button
+                      onClick={async () => {
+                        const url = `${window.location.origin}/jobs/${selectedJob.id}/view`;
+                        if (navigator.share) {
+                          await navigator.share({ title: selectedJob.title, url });
+                        } else {
+                          await navigator.clipboard.writeText(url);
+                          alert("הקישור הועתק!");
+                        }
+                      }}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200 shrink-0"
+                    >
+                      <Share2 size={18} className="text-gray-600" strokeWidth={2} />
+                    </button>
                     <div className="flex-1 text-right">
                       <h2 className="text-xl font-black text-gray-900 leading-tight">{selectedJob.title}</h2>
                       <p className="text-sm text-gray-500 mt-0.5">{selectedJob.company}</p>
@@ -587,7 +596,7 @@ export default function HomePage() {
                       <ul className="flex flex-col gap-1.5">
                         {selectedJob.requirements.map((req, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                            <span className="text-blue-500 font-bold mt-0.5">•</span>
+                            <span className="text-green-500 font-bold mt-0.5">✓</span>
                             {req}
                           </li>
                         ))}

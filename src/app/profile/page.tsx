@@ -19,7 +19,7 @@ const accountItems: { icon: React.ElementType; label: string; bold: boolean; hre
 
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -51,8 +51,8 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
       if (!user) return;
-      setIsLoggedIn(true);
       const { data } = await supabase.from("profiles").select("first_name").eq("id", user.id).single();
       if (data?.first_name) setFirstName(data.first_name);
     };
@@ -89,7 +89,7 @@ export default function ProfilePage() {
           <h2 className="text-xl font-bold text-gray-900 mb-1">
             {firstName ? `ברוך הבא, ${firstName}` : "ברוך הבא ל-Hevre"}
           </h2>
-          {!isLoggedIn && (
+          {isLoggedIn === false && (
             <Link href="/login" className="text-sm text-gray-500 active:text-blue-600">התחבר או הרשם לחשבון</Link>
           )}
         </div>
@@ -116,7 +116,7 @@ export default function ProfilePage() {
             ))}
 
             {/* Login button */}
-            {!isLoggedIn && (
+            {isLoggedIn === false && (
               <div className="px-4 py-4">
                 <Link href="/login" className="block w-full bg-blue-700 text-white font-bold text-base rounded-xl py-3.5 text-center active:bg-blue-800 transition-colors">
                   התחבר לחשבון
