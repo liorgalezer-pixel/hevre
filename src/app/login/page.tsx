@@ -112,7 +112,7 @@ export default function LoginPage() {
         onClick={async () => {
           const isCapacitor = typeof (window as any).Capacitor !== "undefined";
           const redirectTo = isCapacitor
-            ? "https://hevre.vercel.app/auth/callback"
+            ? "hevre://auth/callback"
             : `${window.location.origin}/auth/callback`;
 
           const { data, error } = await supabase.auth.signInWithOAuth({
