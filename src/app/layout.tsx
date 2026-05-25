@@ -27,8 +27,8 @@ const jetMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hevre | משרות לישראלים בניו יורק",
-  description: "פלטפורמת חיפוש עבודה לישראלים בניו יורק",
+  title: "Hevre | משרות לישראלים בארה״ב",
+  description: "פלטפורמת חיפוש עבודה לישראלים בארה״ב",
 };
 
 export const viewport: Viewport = {
