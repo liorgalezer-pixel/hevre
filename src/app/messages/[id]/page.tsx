@@ -120,7 +120,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     <div className="flex flex-col h-screen bg-cream" dir="rtl">
 
       {/* Header */}
-      <header className="bg-paper px-4 pt-12 pb-3 flex items-center gap-3 border-b border-divider shrink-0 sticky top-0 z-10">
+      <header className="bg-paper px-4 pb-3 flex items-center gap-3 border-b border-divider shrink-0 sticky top-0 z-10" style={{ paddingTop: "max(48px, env(safe-area-inset-top))" }}>
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center shrink-0">
           <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
@@ -141,7 +141,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       </header>
 
       {/* Security notice */}
-      <div className="bg-cream-warm px-4 py-2 text-center border-b border-divider shrink-0 sticky top-[73px] z-10">
+      <div className="bg-cream-warm px-4 py-2 text-center border-b border-divider shrink-0">
         <p className="font-mono text-[10px] text-ink-3 uppercase tracking-wide">🔒 לצורכי אבטחה ההודעות ימחקו תוך 72 שעות</p>
       </div>
 
