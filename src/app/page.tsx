@@ -2,7 +2,7 @@
 
 import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Drawer } from "vaul";
 import BottomNav from "@/components/BottomNav";
 import { CATEGORIES } from "@/lib/categories";
@@ -112,71 +112,63 @@ export default function HomePage() {
         const savedJobs: MockJob[] = JSON.parse(localStorage.getItem(sKey) || "[]");
         setSavedIds(savedJobs.map(j => j.id));
 
-        // Load dismissed job IDs (user already dismissed these notifications)
         const dismissedIds: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
-        let appsQuery = supabase
-          .from("applications")
-          .select("job_id, status, jobs(title, company_name)")
-          .eq("applicant_id", user.id)
-          .in("status", ["approved", "rejected"]);
-        if (dismissedIds.length > 0) {
-          appsQuery = appsQuery.not("job_id", "in", `(${dismissedIds.join(",")})`);
-        }
+        const clearedAt = localStorage.getItem("hevre_notif_cleared_at");
+
+        // Fetch all data in parallel
+        const [allAppsRes, alertNotifRes, myJobsRes] = await Promise.all([
+          supabase
+            .from("applications")
+            .select("job_id, status, jobs(title, company_name)")
+            .eq("applicant_id", user.id),
+          supabase
+            .from("alert_notifications")
+            .select("id, job_id, job_title, alert_name")
+            .eq("user_id", user.id)
+            .eq("read", false)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("jobs")
+            .select("id, title")
+            .eq("created_by", user.id),
+        ]);
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: apps } = await (appsQuery as any);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const approved = (apps || []).filter((a: any) => a.status === "approved").map((a: any) => ({
+        const allApps: any[] = allAppsRes.data || [];
+
+        // Derive all app-related state from single query
+        setAppliedJobIds(new Set(allApps.map((a) => a.job_id as string)));
+        setRejectedJobIds(new Set(allApps.filter((a) => a.status === "rejected").map((a) => a.job_id as string)));
+
+        // Bell notifications — filter dismissed client-side
+        const undismissed = allApps.filter((a) => !dismissedIds.includes(a.job_id));
+        setApprovedApps(undismissed.filter((a) => a.status === "approved").map((a) => ({
           jobId: a.job_id as string,
           title: (a.jobs?.title as string) || "",
           company: (a.jobs?.company_name as string) || "",
-        }));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rejected = (apps || []).filter((a: any) => a.status === "rejected").map((a: any) => ({
+        })));
+        setRejectedApps(undismissed.filter((a) => a.status === "rejected").map((a) => ({
           jobId: a.job_id as string,
           title: (a.jobs?.title as string) || "",
-        }));
-        setApprovedApps(approved);
-        setRejectedApps(rejected);
-        const { data: allRejected } = await supabase
-          .from("applications")
-          .select("job_id")
-          .eq("applicant_id", user.id)
-          .eq("status", "rejected");
-        setRejectedJobIds(new Set((allRejected || []).map((a: { job_id: string }) => a.job_id)));
+        })));
 
-        // Load all applied job IDs for badge display
-        const { data: allApplied } = await supabase
-          .from("applications")
-          .select("job_id")
-          .eq("applicant_id", user.id);
-        setAppliedJobIds(new Set((allApplied || []).map((a: { job_id: string }) => a.job_id)));
-
-        // Alert notifications
-        const { data: alertNotifData } = await supabase
-          .from("alert_notifications")
-          .select("id, job_id, job_title, alert_name")
-          .eq("user_id", user.id)
-          .eq("read", false)
-          .order("created_at", { ascending: false });
-        setAlertNotifs((alertNotifData || []).map((n: { id: string; job_id: string; job_title: string; alert_name: string }) => ({
+        setAlertNotifs((alertNotifRes.data || []).map((n: { id: string; job_id: string; job_title: string; alert_name: string }) => ({
           id: n.id,
           jobId: n.job_id,
           jobTitle: n.job_title,
           alertName: n.alert_name,
         })));
 
-        const { data: myJobs } = await supabase
-          .from("jobs").select("id, title").eq("created_by", user.id);
-        if (myJobs && myJobs.length > 0) {
+        const myJobs = myJobsRes.data || [];
+        if (myJobs.length > 0) {
           const jobIds = myJobs.map((j: { id: string }) => j.id);
-          const clearedAt = localStorage.getItem("hevre_notif_cleared_at");
-          let appsQuery = supabase
+          let pendingQuery = supabase
             .from("applications")
             .select("job_id, applicant_id, created_at, profiles(first_name, last_name)")
             .in("job_id", jobIds)
             .eq("status", "pending");
-          if (clearedAt) appsQuery = appsQuery.gt("created_at", clearedAt);
-          const { data: pendingApps } = await appsQuery;
+          if (clearedAt) pendingQuery = pendingQuery.gt("created_at", clearedAt);
+          const { data: pendingApps } = await pendingQuery;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const newApps = (pendingApps || []).map((a: any) => ({
             jobId: a.job_id as string,
@@ -286,23 +278,26 @@ export default function HomePage() {
     filters.license || filters.car || filters.housing || filters.weekend || filters.holidays
   );
 
-  const allJobs = [...userJobs, ...MOCK_JOBS];
-  const filtered = allJobs.filter(j => {
-    if (rejectedJobIds.has(j.id)) return false;
-    if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
-      if (!j.title.toLowerCase().includes(q) && !j.company.toLowerCase().includes(q) && !(j.description || "").toLowerCase().includes(q)) return false;
-    }
-    if (activeCategory && !j.categories.includes(activeCategory)) return false;
-    if (filters) {
-      if (filters.categories.length > 0 && !filters.categories.some(c => j.categories.includes(c))) return false;
-      if (filters.cities.length > 0 && !filters.cities.some(city => j.location.toLowerCase().includes(city.toLowerCase()))) return false;
-      if (filters.license && !j.license) return false;
-      if (filters.car && !j.car) return false;
-      if (filters.housing && !j.housing) return false;
-    }
-    return true;
-  });
+  const allJobs = useMemo(() => [...userJobs, ...MOCK_JOBS], [userJobs]);
+
+  const filtered = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return allJobs.filter(j => {
+      if (rejectedJobIds.has(j.id)) return false;
+      if (q) {
+        if (!j.title.toLowerCase().includes(q) && !j.company.toLowerCase().includes(q) && !(j.description || "").toLowerCase().includes(q)) return false;
+      }
+      if (activeCategory && !j.categories.includes(activeCategory)) return false;
+      if (filters) {
+        if (filters.categories.length > 0 && !filters.categories.some(c => j.categories.includes(c))) return false;
+        if (filters.cities.length > 0 && !filters.cities.some(city => j.location.toLowerCase().includes(city.toLowerCase()))) return false;
+        if (filters.license && !j.license) return false;
+        if (filters.car && !j.car) return false;
+        if (filters.housing && !j.housing) return false;
+      }
+      return true;
+    });
+  }, [allJobs, searchText, activeCategory, filters, rejectedJobIds]);
 
   return (
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
