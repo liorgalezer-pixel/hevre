@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { MapPin, DollarSign, MessageSquare, ChevronRight, ChevronDown, Eye } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
@@ -22,7 +21,7 @@ type Application = {
 
 function Tag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="bg-gray-800 text-white text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1">
+    <span className="bg-cream-warm text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1 ring-1 ring-divider">
       {children}
     </span>
   );
@@ -30,9 +29,9 @@ function Tag({ children }: { children: React.ReactNode }) {
 
 export default function MyApplicationsPage() {
   const router = useRouter();
-  const [pendingOpen, setPendingOpen] = useState(false);
-  const [approvedOpen, setApprovedOpen] = useState(false);
-  const [rejectedOpen, setRejectedOpen] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(true);
+  const [approvedOpen, setApprovedOpen] = useState(true);
+  const [rejectedOpen, setRejectedOpen] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
 
@@ -78,19 +77,22 @@ export default function MyApplicationsPage() {
   if (isLoggedIn === null) return null;
 
   if (!isLoggedIn) return (
-    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
-      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
+      <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">מועמדות למשרות שלי</h1>
-        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מועמדות למשרות שלי</h1>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5 pb-24">
         <div className="text-5xl">🔒</div>
-        <h2 className="text-xl font-black text-gray-900">יש להתחבר כדי לצפות במועמדויות</h2>
-        <p className="text-sm text-gray-400">התחבר או צור חשבון כדי לעקוב אחרי המועמדויות שלך</p>
-        <Link href="/login" className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center active:bg-blue-800 transition-colors">
+        <h2 className="font-serif text-xl font-bold text-ink tracking-tight">יש להתחבר כדי לצפות במועמדויות</h2>
+        <p className="text-sm text-ink-3">התחבר או צור חשבון כדי לעקוב אחרי המועמדויות שלך</p>
+        <Link href="/login" className="w-full h-14 bg-ink text-cream font-serif font-semibold text-base rounded-2xl flex items-center justify-center active:bg-terracotta-deep transition-colors">
           התחבר / הרשם
         </Link>
       </main>
@@ -99,60 +101,62 @@ export default function MyApplicationsPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
       {/* Header */}
-      <header className="bg-white px-4 pt-12 pb-3">
+      <header className="bg-paper px-4 pt-12 pb-3">
         <div className="flex items-center justify-between mb-4">
           <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-            <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+            <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
           </button>
-          <Image src="/hevre-logo.png" alt="Hevre" width={90} height={36} className="object-contain" />
+          <div className="flex items-baseline gap-1">
+            <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+          </div>
         </div>
       </header>
 
       <main className="flex-1 px-4 pt-5 pb-28">
-        <h1 className="text-2xl font-bold text-blue-900 text-right mb-5">מועמדות למשרות שלי</h1>
+        <h1 className="font-serif text-2xl font-bold text-ink text-right mb-5 tracking-tight">מועמדות למשרות שלי</h1>
 
         {/* Pending */}
         <button onClick={() => setPendingOpen((v) => !v)} className="flex flex-row-reverse items-center justify-between mb-3 w-full">
-          <ChevronDown size={18} className={`text-gray-500 transition-transform ${pendingOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
-          <p className="text-base font-bold text-gray-700">משרות בהמתנה ({pending.length})</p>
+          <ChevronDown size={18} className={`text-ink-2 transition-transform ${pendingOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
+          <p className="text-base font-bold text-ink-2">משרות בהמתנה ({pending.length})</p>
         </button>
         {pendingOpen && <div className="flex flex-col gap-3 mb-6">
           {pending.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
               <span className="text-3xl">📋</span>
-              <p className="text-sm text-gray-400">עדיין לא הגשת מועמדות</p>
+              <p className="text-sm text-ink-3">עדיין לא הגשת מועמדות</p>
             </div>
           )}
           {pending.map((job) => (
-            <div key={job.jobId} className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-end gap-2 mb-1">
-                <p className="text-base font-black text-gray-900 text-right truncate flex-1">{job.title}</p>
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-sm font-black text-blue-700 shrink-0">
+            <div key={job.jobId} className="bg-paper rounded-2xl px-4 py-4 ring-1 ring-divider flex flex-col gap-3">
+              {/* Top row */}
+              <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
+                <div className="w-11 h-11 rounded-xl bg-cream-warm flex items-center justify-center font-serif text-base font-bold text-terracotta shrink-0">
                   {job.logo}
                 </div>
-              </div>
-              <p className="text-sm text-gray-400 text-right mb-3">{job.company}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-orange-500 bg-orange-50 border border-orange-200 rounded-full px-3 py-1">
-                  ⏳ ממתין לאישור
-                </span>
-                <div className="flex flex-wrap gap-1.5 justify-end">
-                  {job.salary && <Tag><DollarSign size={11} />{job.salary}</Tag>}
-                  {job.location && <Tag><MapPin size={11} />{job.location}</Tag>}
+                <div className="flex-1 text-right">
+                  <p className="font-serif text-base font-bold text-ink tracking-tight leading-snug">{job.title}</p>
+                  <p className="text-xs text-ink-3 mt-0.5">{job.company}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                {job.date && <p className="text-xs text-gray-300">נשלח ב-{job.date}</p>}
-                <button
-                  onClick={() => router.push(`/jobs/${job.jobId}/view`)}
-                  className="flex items-center gap-1 text-xs text-gray-400 active:text-blue-600 mr-auto"
-                >
-                  <Eye size={14} strokeWidth={1.8} />
-                  צפה במודעה
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1.5 justify-end">
+                {job.salary && <Tag><DollarSign size={11} />{job.salary}</Tag>}
+                {job.location && <Tag><MapPin size={11} />{job.location}</Tag>}
+              </div>
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-1 border-t border-divider">
+                <button onClick={() => router.push(`/jobs/${job.jobId}/view`)} className="flex items-center gap-1 text-xs text-ink-3 active:text-terracotta">
+                  <Eye size={13} strokeWidth={1.8} />צפה במודעה
                 </button>
+                <div className="flex items-center gap-1.5">
+                  {job.date && <p className="font-mono text-[10px] text-ink-3">נשלח ב-{job.date}</p>}
+                  <span className="text-[11px] font-semibold text-terracotta bg-cream-warm rounded-full px-2.5 py-0.5">⏳ ממתין</span>
+                </div>
               </div>
             </div>
           ))}
@@ -160,31 +164,35 @@ export default function MyApplicationsPage() {
 
         {/* Approved */}
         <button onClick={() => setApprovedOpen((v) => !v)} className="flex flex-row-reverse items-center justify-between mb-3 w-full">
-          <ChevronDown size={18} className={`text-gray-500 transition-transform ${approvedOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
-          <p className="text-base font-bold text-gray-700">משרות שאושרו ({approved.length})</p>
+          <ChevronDown size={18} className={`text-ink-2 transition-transform ${approvedOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
+          <p className="text-base font-bold text-ink-2">משרות שאושרו ({approved.length})</p>
         </button>
         {approvedOpen && <div className="flex flex-col gap-3">
           {approved.map((job) => (
-            <div key={job.jobId} className="bg-white rounded-2xl px-4 py-4 shadow-sm" style={{direction:"ltr", display:"flex", alignItems:"center", gap:"12px"}}>
+            <div key={job.jobId} className="bg-warm-success-bg rounded-2xl px-4 py-4 ring-1 ring-warm-success-border flex flex-col gap-3">
+              {/* Top row */}
+              <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
+                <div className="w-11 h-11 rounded-xl bg-white/60 flex items-center justify-center font-serif text-base font-bold text-warm-success shrink-0">
+                  {job.logo}
+                </div>
+                <div className="flex-1 text-right">
+                  <p className="font-serif text-base font-bold text-ink tracking-tight leading-snug">{job.title}</p>
+                  <p className="text-xs text-ink-2 mt-0.5">{job.company}</p>
+                  <p className="text-xs text-warm-success font-bold mt-1">✓ המועמדות אושרה!</p>
+                </div>
+              </div>
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1.5 justify-end">
+                {job.salary && <Tag><DollarSign size={11} />{job.salary}</Tag>}
+                {job.location && <Tag><MapPin size={11} />{job.location}</Tag>}
+              </div>
+              {/* Chat button */}
               <button
                 onClick={() => job.conversationId ? router.push(`/messages/${job.conversationId}`) : router.push("/messages")}
-                className="flex items-center gap-1.5 bg-blue-700 text-white text-sm font-bold rounded-xl px-3 py-2 active:bg-blue-800 shrink-0"
+                className="w-full h-11 bg-warm-success text-cream font-serif font-semibold text-sm rounded-xl flex items-center justify-center gap-2 active:opacity-90 transition-opacity"
               >
-                <MessageSquare size={14} />
-                פתיחת צ׳אט
+                <MessageSquare size={15} />פתיחת צ׳אט
               </button>
-              <div className="flex-1 min-w-0" dir="rtl">
-                <p className="text-base font-black text-gray-900 text-right truncate mb-0.5">{job.title}</p>
-                <p className="text-xs text-gray-500 text-right mb-2">{job.company}</p>
-                <div className="flex flex-wrap gap-1.5 justify-end mb-2">
-                  {job.salary && <Tag><DollarSign size={11} />{job.salary}</Tag>}
-                  {job.location && <Tag><MapPin size={11} />{job.location}</Tag>}
-                </div>
-                <p className="text-xs text-green-600 font-bold text-right">✓ המועמדות אושרה!</p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-black text-gray-700 shrink-0">
-                {job.logo}
-              </div>
             </div>
           ))}
         </div>}
@@ -193,18 +201,18 @@ export default function MyApplicationsPage() {
         {rejected.length > 0 && (
           <>
             <button onClick={() => setRejectedOpen(v => !v)} className="flex flex-row-reverse items-center justify-between mb-3 w-full mt-2">
-              <ChevronDown size={18} className={`text-gray-500 transition-transform ${rejectedOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
-              <p className="text-base font-bold text-gray-700">משרות שנדחו ({rejected.length})</p>
+              <ChevronDown size={18} className={`text-ink-2 transition-transform ${rejectedOpen ? "" : "-rotate-90"}`} strokeWidth={2} />
+              <p className="text-base font-bold text-ink-2">משרות שנדחו ({rejected.length})</p>
             </button>
             {rejectedOpen && <div className="flex flex-col gap-3">
               {rejected.map((job) => (
-                <div key={job.jobId} className="bg-white rounded-2xl px-4 py-4 shadow-sm border border-red-100">
+                <div key={job.jobId} className="bg-paper rounded-2xl px-4 py-4 shadow-sm ring-1 ring-warm-danger-border">
                   <div className="flex items-center gap-2 justify-end mb-1">
-                    <p className="text-base font-black text-gray-900 text-right truncate flex-1">{job.title}</p>
-                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-sm font-black text-gray-700 shrink-0">{job.logo}</div>
+                    <p className="font-serif text-base font-bold text-ink text-right truncate flex-1 tracking-tight">{job.title}</p>
+                    <div className="w-10 h-10 rounded-xl bg-cream-warm flex items-center justify-center font-serif text-sm font-bold text-ink shrink-0">{job.logo}</div>
                   </div>
-                  <p className="text-sm text-gray-400 text-right mb-2">{job.company}</p>
-                  <p className="text-xs text-red-500 font-bold text-right">✗ המועמדות נדחתה</p>
+                  <p className="text-sm text-ink-3 text-right mb-2">{job.company}</p>
+                  <p className="text-xs text-warm-danger font-bold text-right">✗ המועמדות נדחתה</p>
                 </div>
               ))}
             </div>}

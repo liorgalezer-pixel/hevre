@@ -1,8 +1,30 @@
 import type { Metadata, Viewport } from "next";
+import { Heebo, Frank_Ruhl_Libre, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import PostHogProvider from "@/components/PostHogProvider";
 import PostHogPageView from "@/components/PostHogPageView";
 import { Suspense } from "react";
+
+const heebo = Heebo({
+  subsets: ["hebrew", "latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-heebo",
+  display: "swap",
+});
+
+const frankRuhl = Frank_Ruhl_Libre({
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "700", "900"],
+  variable: "--font-frank",
+  display: "swap",
+});
+
+const jetMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-mono-jet",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Hevre | משרות לישראלים בניו יורק",
@@ -14,7 +36,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#1d4ed8",
+  themeColor: "#D97757", // terracotta — was #1d4ed8
 };
 
 export default function RootLayout({
@@ -23,8 +45,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="he" dir="rtl">
-      <body className="bg-gray-50 min-h-screen">
+    <html lang="he" dir="rtl" className={`${heebo.variable} ${frankRuhl.variable} ${jetMono.variable}`}>
+      <body className="bg-cream min-h-screen font-sans text-ink">
         <PostHogProvider>
           <Suspense fallback={null}>
             <PostHogPageView />

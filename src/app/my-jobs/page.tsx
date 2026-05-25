@@ -75,33 +75,36 @@ export default function MyJobsPage() {
   }, []);
 
   if (!loaded) return (
-    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
-      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
+      <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <div className="w-11 h-11" />
-        <h1 className="text-lg font-bold text-gray-900">מודעות שפרסמתי</h1>
-        <div className="w-20 h-8 bg-gray-100 rounded animate-pulse" />
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
+        <div className="w-20 h-8 bg-cream-warm rounded animate-pulse" />
       </header>
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
-        {[1, 2].map(i => <div key={i} className="bg-white rounded-2xl h-40 animate-pulse" />)}
+        {[1, 2].map(i => <div key={i} className="bg-paper rounded-2xl h-40 animate-pulse" />)}
       </main>
       <BottomNav />
     </div>
   );
 
   if (!isLoggedIn) return (
-    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
-      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
+      <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">מודעות שפרסמתי</h1>
-        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5 pb-24">
         <div className="text-5xl">🔒</div>
-        <h2 className="text-xl font-black text-gray-900">יש להתחבר כדי לצפות במודעות</h2>
-        <p className="text-sm text-gray-400">התחבר או צור חשבון כדי לנהל את המשרות שלך</p>
-        <Link href="/login" className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center active:bg-blue-800 transition-colors">
+        <h2 className="font-serif text-xl font-bold text-ink tracking-tight">יש להתחבר כדי לצפות במודעות</h2>
+        <p className="text-sm text-ink-3">התחבר או צור חשבון כדי לנהל את המשרות שלך</p>
+        <Link href="/login" className="w-full h-14 bg-ink text-cream font-serif font-semibold text-base rounded-2xl flex items-center justify-center active:bg-terracotta-deep transition-colors">
           התחבר / הרשם
         </Link>
       </main>
@@ -110,15 +113,18 @@ export default function MyJobsPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
       {/* Header */}
-      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+      <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">מודעות שפרסמתי</h1>
-        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
       </header>
 
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
@@ -126,31 +132,31 @@ export default function MyJobsPage() {
         {/* Banner */}
         {jobs.length > 0 && bannerVisible && (
           jobs.length >= 2 ? (
-            <div className="bg-blue-700 rounded-2xl px-4 py-4 flex items-center gap-3" style={{ direction: "ltr" }}>
+            <div className="bg-terracotta rounded-2xl px-4 py-4 flex items-center gap-3" style={{ direction: "ltr" }}>
               <button onClick={() => setBannerVisible(false)} className="shrink-0">
-                <X size={18} className="text-blue-200" strokeWidth={2} />
+                <X size={18} className="text-cream opacity-60" strokeWidth={2} />
               </button>
               <div className="flex flex-1 items-center justify-between gap-3">
                 <button
                   onClick={() => router.push("/hevre-plus")}
-                  className="shrink-0 bg-white text-blue-700 font-black text-sm rounded-xl px-3 py-2 active:bg-blue-50"
+                  className="shrink-0 bg-paper text-terracotta font-black text-sm rounded-xl px-3 py-2 active:bg-cream"
                 >
                   Hevre ✦
                 </button>
                 <div className="flex flex-col items-end gap-0.5 flex-1">
-                  <p className="text-sm font-black text-white text-right leading-snug">הגעת למכסת המשרות שלך</p>
-                  <p className="text-xs font-medium text-blue-200 text-right leading-snug">לפתיחת עוד משרות שדרג עכשיו</p>
+                  <p className="text-sm font-black text-cream text-right leading-snug">הגעת למכסת המשרות שלך</p>
+                  <p className="text-xs font-medium text-cream opacity-70 text-right leading-snug">לפתיחת עוד משרות שדרג עכשיו</p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-yellow-100 border border-yellow-200 rounded-2xl px-4 py-4 flex items-start gap-3" style={{ direction: "ltr" }}>
+            <div className="bg-warm-info-bg ring-1 ring-warm-info-text/20 rounded-2xl px-4 py-4 flex items-start gap-3" style={{ direction: "ltr" }}>
               <button onClick={() => setBannerVisible(false)} className="mt-0.5 shrink-0">
-                <X size={18} className="text-yellow-600" strokeWidth={2} />
+                <X size={18} className="text-warm-info-text" strokeWidth={2} />
               </button>
               <div className="flex-1 flex items-center justify-between gap-2">
                 <span className="text-2xl">🔧</span>
-                <p className="text-sm font-bold text-yellow-800 text-right leading-snug flex-1">
+                <p className="text-sm font-bold text-warm-info-text text-right leading-snug flex-1">
                   פרסמת עבודה אחת בחינם,<br />ניתן לפרסם עוד עבודה ללא עלות
                 </p>
               </div>
@@ -160,31 +166,31 @@ export default function MyJobsPage() {
 
         {/* Job cards */}
         {jobs.map((job) => (
-          <div key={job.id} className="bg-white rounded-2xl p-5 shadow-sm flex flex-col gap-3">
+          <div key={job.id} className="bg-paper rounded-2xl p-5 shadow-sm flex flex-col gap-3">
 
             {/* Top row: preview button (left) + logo (right) */}
             <div className="flex items-start justify-between gap-3" style={{ direction: "ltr" }}>
               <Link
                 href={`/jobs/${job.id}/preview`}
-                className="flex items-center gap-1.5 border border-blue-700 text-blue-700 font-semibold text-xs rounded-xl py-2 px-3 active:bg-blue-50 transition-colors shrink-0"
+                className="flex items-center gap-1.5 ring-1 ring-divider text-ink-2 font-semibold text-xs rounded-xl py-2 px-3 active:bg-cream transition-colors shrink-0"
               >
                 <Eye size={14} strokeWidth={2} />
                 תצוגה מקדימה
               </Link>
-              <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-14 h-14 rounded-xl bg-cream-warm flex items-center justify-center overflow-hidden shrink-0">
                 {job.logoPreview ? (
                   <Image src={job.logoPreview} alt="לוגו" width={56} height={56} className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon size={24} className="text-gray-400" strokeWidth={1.2} />
+                  <ImageIcon size={24} className="text-ink-3" strokeWidth={1.2} />
                 )}
               </div>
             </div>
 
             {/* Title */}
-            <h2 className="text-xl font-black text-gray-900 text-right">{job.title}</h2>
+            <h2 className="font-serif text-xl font-bold text-ink text-right tracking-tight">{job.title}</h2>
 
             {/* Details */}
-            <p className="text-sm text-gray-400 text-right">
+            <p className="text-sm text-ink-3 text-right">
               {[job.salary, job.companyAddress].filter(Boolean).join(" • ")}
             </p>
 
@@ -196,11 +202,11 @@ export default function MyJobsPage() {
                   מועמדים בהמתנה ({pendingCounts[job.id]})
                 </span>
               )}
-              <span className={`flex items-center gap-1.5 text-sm font-medium border rounded-lg px-3 py-1 ${job.frozen ? "text-red-500 border-gray-200" : "text-green-600 border-gray-200"}`}>
-                <span className={`w-2 h-2 rounded-full inline-block ${job.frozen ? "bg-red-500" : "bg-green-500"}`} />
+              <span className={`flex items-center gap-1.5 text-sm font-medium ring-1 ring-divider rounded-lg px-3 py-1 ${job.frozen ? "text-warm-danger" : "text-warm-success"}`}>
+                <span className={`w-2 h-2 rounded-full inline-block ${job.frozen ? "bg-warm-danger" : "bg-warm-success"}`} />
                 {job.frozen ? "קפוא" : "פעילה"}
               </span>
-              <span className="text-sm font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-1">
+              <span className="font-mono text-[11px] text-ink-2 ring-1 ring-divider rounded-lg px-3 py-1 uppercase tracking-wider">
                 מודעה בסיסית
               </span>
             </div>
@@ -208,7 +214,7 @@ export default function MyJobsPage() {
             {/* CTA */}
             <Link
               href={`/jobs/${job.id}`}
-              className="w-full h-13 bg-blue-800 text-white font-bold text-base rounded-xl flex items-center justify-center active:bg-blue-900 transition-colors py-3"
+              className="w-full h-13 bg-ink text-cream font-serif font-semibold text-base rounded-xl flex items-center justify-center active:bg-terracotta-deep transition-colors py-3"
             >
               צפה במשרה
             </Link>
@@ -222,24 +228,24 @@ export default function MyJobsPage() {
         <>
           <div className="fixed inset-0 bg-black/50 z-40" />
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-            <div className="bg-white rounded-3xl w-full px-6 py-8 flex flex-col gap-5 shadow-xl">
+            <div className="bg-paper rounded-3xl w-full px-6 py-8 flex flex-col gap-5 shadow-xl">
               <div className="text-4xl text-center">📋</div>
-              <h2 className="text-lg font-black text-gray-900 text-center leading-snug">
+              <h2 className="font-serif text-lg font-bold text-ink text-center leading-snug tracking-tight">
                 ראינו שעוד לא פרסמת משרה
               </h2>
-              <p className="text-sm text-gray-500 text-center leading-relaxed">
+              <p className="text-sm text-ink-2 text-center leading-relaxed">
                 לפרסום משרה ראשונה לחץ כאן
               </p>
               <div className="flex flex-col gap-3">
                 <Link
                   href="/post?new=1"
-                  className="w-full h-13 bg-blue-700 text-white font-bold text-base rounded-2xl flex items-center justify-center py-3 active:bg-blue-800 transition-colors"
+                  className="w-full h-13 bg-ink text-cream font-serif font-semibold text-base rounded-2xl flex items-center justify-center py-3 active:bg-terracotta-deep transition-colors"
                 >
                   פרסם משרה
                 </Link>
                 <button
                   onClick={() => router.push("/profile")}
-                  className="w-full h-13 border border-gray-200 text-gray-600 font-medium text-base rounded-2xl py-3 active:bg-gray-50"
+                  className="w-full h-13 ring-1 ring-divider text-ink-2 font-medium text-base rounded-2xl py-3 active:bg-cream"
                 >
                   לא עכשיו
                 </button>

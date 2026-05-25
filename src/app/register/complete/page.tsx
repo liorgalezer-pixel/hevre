@@ -23,9 +23,18 @@ export default function RegisterCompletePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setEmail(localStorage.getItem("reg_email") || "");
     setFirstName(localStorage.getItem("reg_first_name") || "");
     setLastName(localStorage.getItem("reg_last_name") || "");
+
+    const storedEmail = localStorage.getItem("reg_email") || "";
+    if (storedEmail) {
+      setEmail(storedEmail);
+    } else {
+      // Google OAuth — get email from session
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user?.email) setEmail(user.email);
+      });
+    }
   }, []);
   const [birthDate, setBirthDate] = useState("");
   const [city, setCity] = useState("");
@@ -42,7 +51,9 @@ export default function RegisterCompletePage() {
   const errors = {
     firstName: !firstName.trim(),
     lastName: !lastName.trim(),
-    phone: phone.length < (phoneCountry === "+1" ? 10 : 9),
+    phone: phoneCountry === "+1"
+      ? !/^\d{10}$/.test(phone.replace(/\D/g, ""))
+      : !/^0\d{8,9}$/.test(phone.replace(/\D/g, "")),
     birthDate: birthDate.length < 10,
     location: isInUSA ? (!usState || !city) : false,
   };
@@ -59,42 +70,48 @@ export default function RegisterCompletePage() {
     const storedEmail = localStorage.getItem("reg_email") || email;
     const storedPassword = sessionStorage.getItem("reg_password") || "";
 
-    // נסה sign up — אם המשתמש כבר קיים, נתחבר במקום
     let userId: string;
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: storedEmail,
-      password: storedPassword,
-    });
 
-    if (signUpError) {
-      const alreadyExists =
-        signUpError.message.toLowerCase().includes("already registered") ||
-        signUpError.message.toLowerCase().includes("already exists") ||
-        signUpError.message.toLowerCase().includes("user already");
+    // Check if already logged in (e.g. via Google OAuth)
+    const { data: { user: existingUser } } = await supabase.auth.getUser();
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      // Email/password registration flow
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: storedEmail,
+        password: storedPassword,
+      });
 
-      if (alreadyExists) {
-        // המשתמש כבר קיים — ננסה להתחבר
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: storedEmail,
-          password: storedPassword,
-        });
-        if (signInError || !signInData.user) {
-          setError("האימייל כבר רשום. אם שכחת סיסמה — חזור להתחברות.");
+      if (signUpError) {
+        const alreadyExists =
+          signUpError.message.toLowerCase().includes("already registered") ||
+          signUpError.message.toLowerCase().includes("already exists") ||
+          signUpError.message.toLowerCase().includes("user already");
+
+        if (alreadyExists) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: storedEmail,
+            password: storedPassword,
+          });
+          if (signInError || !signInData.user) {
+            setError("האימייל כבר רשום. אם שכחת סיסמה — חזור להתחברות.");
+            setLoading(false);
+            return;
+          }
+          userId = signInData.user.id;
+        } else {
+          setError(`שגיאה: ${signUpError.message}`);
           setLoading(false);
           return;
         }
-        userId = signInData.user.id;
-      } else {
-        setError(`שגיאה: ${signUpError.message}`);
+      } else if (!signUpData.user) {
+        setError("לא התקבל משתמש — נסה שוב");
         setLoading(false);
         return;
+      } else {
+        userId = signUpData.user.id;
       }
-    } else if (!signUpData.user) {
-      setError("לא התקבל משתמש — נסה שוב");
-      setLoading(false);
-      return;
-    } else {
-      userId = signUpData.user.id;
     }
 
     // upsert כדי לא לכשול אם הפרופיל כבר קיים

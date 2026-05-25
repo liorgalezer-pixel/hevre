@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import posthog from "posthog-js";
-import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,40 +35,43 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white px-6 pt-14" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-paper px-6 pt-14" dir="rtl">
 
       {/* Back button */}
       <button onClick={() => router.back()} className="absolute top-12 right-4 w-11 h-11 flex items-center justify-center">
-        <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+        <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
       </button>
 
-      {/* Logo */}
+      {/* Logo wordmark */}
       <div className="flex justify-center mb-10">
-        <Image src="/hevre-logo.png" alt="Hevre" width={110} height={44} className="object-contain" priority />
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-serif text-4xl font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-terracotta self-center" />
+        </div>
       </div>
 
       {/* Title */}
-      <h1 className="text-4xl font-black text-gray-900 text-center mb-2">דף התחברות</h1>
-      <p className="text-gray-400 text-center text-base mb-10">היי טוב לראות אותך שוב!</p>
+      <h1 className="font-serif text-4xl font-bold text-ink text-center mb-2 tracking-tight">דף התחברות</h1>
+      <p className="text-ink-3 text-center text-base mb-10">היי טוב לראות אותך שוב!</p>
 
       {/* Form */}
       <div className="flex flex-col gap-6 mb-4">
-        <div className="border-b border-gray-300 pb-2">
+        <div className="border-b border-divider pb-2">
           <input
             type="email"
             placeholder="אימייל"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             dir="rtl"
-            className="w-full text-right text-base outline-none placeholder:text-gray-400 bg-transparent"
+            className="w-full text-right text-base outline-none placeholder:text-ink-3 bg-transparent"
           />
         </div>
 
-        <div className="border-b border-gray-300 pb-2 flex items-center gap-2" style={{ direction: "ltr" }}>
+        <div className="border-b border-divider pb-2 flex items-center gap-2" style={{ direction: "ltr" }}>
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-gray-400 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="text-ink-3 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -79,26 +81,26 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             dir="rtl"
-            className="flex-1 text-right text-base outline-none placeholder:text-gray-400 bg-transparent"
+            className="flex-1 text-right text-base outline-none placeholder:text-ink-3 bg-transparent"
           />
         </div>
       </div>
 
       <div className="text-right mb-8">
-        <button className="text-sm text-gray-500">שכחתי סיסמא</button>
+        <button className="text-sm text-ink-2">שכחתי סיסמא</button>
       </div>
 
-      {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+      {error && <p className="text-warm-danger text-sm text-center mb-3">{error}</p>}
 
       <button
         onClick={handleLogin}
         disabled={loading || !email || !password}
-        className={`w-full font-bold text-lg rounded-2xl h-14 mb-6 transition-colors text-white ${loading || !email || !password ? "bg-gray-300" : "bg-blue-700 active:bg-blue-800"}`}
+        className={`w-full font-serif font-semibold text-lg rounded-2xl h-14 mb-6 transition-colors text-cream ${loading || !email || !password ? "bg-cream-warm text-ink-3" : "bg-ink active:bg-terracotta-deep"}`}
       >
         {loading ? "מתחבר..." : "התחברות"}
       </button>
 
-      <p className="text-center text-gray-400 text-sm mb-4">אפשר גם דרך</p>
+      <p className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-center mb-4">אפשר גם דרך</p>
 
       <button
         onClick={async () => {
@@ -106,12 +108,12 @@ export default function LoginPage() {
             provider: "google",
             options: {
               redirectTo: `${window.location.origin}/auth/callback`,
-              skipBrowserRedirect: false,
+              queryParams: { prompt: "select_account" },
             },
           });
           if (error) alert("שגיאה: " + error.message);
         }}
-        className="w-full border border-gray-200 rounded-2xl h-14 flex items-center justify-center gap-3 bg-white shadow-sm active:bg-gray-50 transition-colors mb-8"
+        className="w-full ring-1 ring-divider rounded-2xl h-14 flex items-center justify-center gap-3 bg-paper shadow-sm active:bg-cream transition-colors mb-8"
       >
         <svg width="24" height="24" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -119,12 +121,12 @@ export default function LoginPage() {
           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
         </svg>
-        <span className="text-gray-700 font-medium text-base">Google</span>
+        <span className="text-ink-2 font-medium text-base">Google</span>
       </button>
 
-      <p className="text-center text-sm text-gray-500">
+      <p className="text-center text-sm text-ink-2">
         עדיין לא נרשמת ל hevre{" "}
-        <Link href="/register" className="text-yellow-500 font-bold">
+        <Link href="/register" className="text-terracotta font-bold">
           להרשמה
         </Link>
       </p>

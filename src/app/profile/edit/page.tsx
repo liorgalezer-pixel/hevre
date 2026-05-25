@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, X, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import UserLocationPicker from "@/components/UserLocationPicker";
 import LanguageSearchModal from "@/components/LanguageSearchModal";
@@ -51,7 +50,7 @@ export default function ProfileEditPage() {
       if (user) {
         const { data } = await supabase
           .from("profiles")
-          .select("first_name, last_name, phone, email, birth_date, city, country, intl_license, languages")
+          .select("first_name, last_name, phone, email, birth_date, city, country, us_state, intl_license, languages")
           .eq("id", user.id)
           .single();
         if (data) {
@@ -74,7 +73,7 @@ export default function ProfileEditPage() {
           if (data.birth_date) setBirthDate(data.birth_date);
           if (data.city) setCity(data.city);
           if (data.country) setCountry(data.country);
-          if (data.city) setCity(data.city);
+          if (data.us_state) setUsState(data.us_state);
           if (typeof data.intl_license === "boolean") setIlLicense(data.intl_license);
           if (Array.isArray(data.languages) && data.languages.length) setSelectedLangs(data.languages);
           return;
@@ -125,6 +124,7 @@ export default function ProfileEditPage() {
         birth_date: birthDate,
         city,
         country,
+        us_state: usState,
         il_license: ilLicense,
         us_license: usLicense,
         languages: selectedLangs.filter(l => l !== "__other__"),
@@ -145,17 +145,17 @@ export default function ProfileEditPage() {
 
   if (saved) {
     return (
-      <div className="flex flex-col min-h-screen bg-white items-center justify-center px-6 gap-6" dir="rtl">
-        <div className="w-24 h-24 rounded-full bg-green-50 flex items-center justify-center">
-          <CheckCircle2 size={52} className="text-green-500" strokeWidth={1.5} />
+      <div className="flex flex-col min-h-screen bg-paper items-center justify-center px-6 gap-6" dir="rtl">
+        <div className="w-24 h-24 rounded-full bg-warm-success-bg flex items-center justify-center">
+          <CheckCircle2 size={52} className="text-warm-success" strokeWidth={1.5} />
         </div>
         <div className="text-center flex flex-col gap-2">
-          <h2 className="text-2xl font-black text-gray-900">הפרטים עודכנו!</h2>
-          <p className="text-sm text-gray-500">השינויים שלך נשמרו בהצלחה</p>
+          <h2 className="font-serif text-2xl font-bold text-ink tracking-tight">הפרטים עודכנו!</h2>
+          <p className="text-sm text-ink-2">השינויים שלך נשמרו בהצלחה</p>
         </div>
         <button
           onClick={() => router.push("/profile")}
-          className="w-full h-14 bg-blue-700 text-white font-black text-base rounded-2xl active:bg-blue-800"
+          className="w-full h-14 bg-ink text-cream font-serif font-semibold text-base rounded-2xl active:bg-terracotta-deep"
         >
           חזרה לאזור אישי
         </button>
@@ -164,15 +164,18 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-paper" dir="rtl">
 
       {/* Header */}
-      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+      <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <h1 className="text-lg font-bold text-gray-900">עדכון פרטים אישיים</h1>
-        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">עדכון פרטים אישיים</h1>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-6 pb-32">
@@ -181,39 +184,39 @@ export default function ProfileEditPage() {
 
           {/* First name */}
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">שם פרטי</label>
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider block text-right mb-1">שם פרטי</label>
             <input
               type="text"
               value={firstName}
               placeholder="אבי"
               onChange={(e) => setFirstName(e.target.value)}
               dir="rtl"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
+              className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-right text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta"
             />
           </div>
 
           {/* Last name */}
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">שם משפחה</label>
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider block text-right mb-1">שם משפחה</label>
             <input
               type="text"
               value={lastName}
               placeholder="כהן"
               onChange={(e) => setLastName(e.target.value)}
               dir="rtl"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
+              className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-right text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta"
             />
           </div>
 
           {/* Phone */}
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">טלפון נייד</label>
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider block text-right mb-1">טלפון נייד</label>
             <div className="flex gap-2 items-center" style={{ direction: "ltr" }}>
               <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setPhoneDropOpen((v) => !v)}
-                  className="flex items-center gap-1.5 border border-gray-300 rounded-xl h-11 px-3 bg-white text-sm font-bold text-gray-700"
+                  className="flex items-center gap-1.5 bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-sm font-bold text-ink"
                 >
                   {phoneCountry}
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -221,13 +224,13 @@ export default function ProfileEditPage() {
                 {phoneDropOpen && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setPhoneDropOpen(false)} />
-                    <div className="absolute top-12 left-0 z-40 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden min-w-[130px]">
+                    <div className="absolute top-12 left-0 z-40 bg-paper ring-1 ring-divider rounded-2xl shadow-lg overflow-hidden min-w-[130px]">
                       {([{ code: "+1", label: "🇺🇸 ארה״ב" }, { code: "+972", label: "🇮🇱 ישראל" }] as const).map(({ code, label }) => (
                         <button
                           key={code}
                           type="button"
                           onClick={() => { setPhoneCountry(code); setPhone(""); setPhoneDropOpen(false); }}
-                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-gray-50 ${phoneCountry === code ? "text-blue-700 font-bold" : "text-gray-700"}`}
+                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm hover:bg-cream ${phoneCountry === code ? "text-terracotta font-bold" : "text-ink"}`}
                         >
                           <span>{label}</span>
                           <span className="font-bold mr-auto">{code}</span>
@@ -244,27 +247,27 @@ export default function ProfileEditPage() {
                 placeholder={phoneCountry === "+1" ? "2125551234" : "501234567"}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 style={{ direction: "ltr" }}
-                className="flex-1 border border-gray-300 rounded-xl h-11 px-3 text-left text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
+                className="flex-1 bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-left text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta"
               />
             </div>
           </div>
 
           {/* Email */}
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">אימייל</label>
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider block text-right mb-1">אימייל</label>
             <input
               type="email"
               value={email}
               placeholder="avi@email.com"
               onChange={(e) => setEmail(e.target.value)}
               style={{ direction: "ltr" }}
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-left text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
+              className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-left text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta"
             />
           </div>
 
           {/* Birth date */}
           <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">תאריך לידה</label>
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider block text-right mb-1">תאריך לידה</label>
             <input
               type="text"
               value={birthDate}
@@ -278,7 +281,7 @@ export default function ProfileEditPage() {
                 else if (digits.length > 2) formatted = digits.slice(0, 2) + "/" + digits.slice(2);
                 setBirthDate(formatted);
               }}
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 focus:border-blue-500"
+              className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-right text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta"
             />
           </div>
 
@@ -294,21 +297,21 @@ export default function ProfileEditPage() {
 
           {/* License toggle */}
           <div className="flex items-center gap-3 py-1">
-            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה ישראלי / אמריקאי</span>
+            <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider flex-1 text-right">רישיון נהיגה ישראלי / אמריקאי</span>
             <button
               type="button"
               onClick={() => setIlLicense(!ilLicense)}
-              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${ilLicense ? "bg-blue-600" : "bg-gray-300"}`}
+              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${ilLicense ? "bg-terracotta" : "bg-cream-warm"}`}
             >
-              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${ilLicense ? "right-0.5" : "left-0.5"}`} />
+              <span className={`absolute top-0.5 w-6 h-6 bg-paper rounded-full shadow transition-all ${ilLicense ? "right-0.5" : "left-0.5"}`} />
             </button>
           </div>
         </div>
 
         {/* Languages */}
         <div className="mt-6">
-          <h2 className="text-base font-bold text-gray-900 text-right mb-1">שפות</h2>
-          <p className="text-sm text-gray-400 text-right mb-3">שפות שאתה מדבר ברמה טובה</p>
+          <h2 className="font-serif text-base font-bold text-ink text-right mb-1 tracking-tight">שפות</h2>
+          <p className="text-sm text-ink-3 text-right mb-3">שפות שאתה מדבר ברמה טובה</p>
 
           <div className="flex flex-wrap gap-2 justify-start mb-3" dir="rtl">
             {defaultLanguages.map((lang) => (
@@ -321,10 +324,10 @@ export default function ProfileEditPage() {
                     toggleLang(lang);
                   }
                 }}
-                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                className={`px-4 py-2 rounded-full text-sm font-medium ring-1 transition-colors ${
                   selectedLangs.includes(lang)
-                    ? "bg-gray-700 text-white border-gray-700"
-                    : "bg-white text-gray-700 border-gray-300"
+                    ? "bg-ink text-cream ring-ink"
+                    : "bg-paper text-ink-2 ring-divider"
                 }`}
               >
                 {lang}
@@ -334,7 +337,7 @@ export default function ProfileEditPage() {
               <button
                 key={lang}
                 onClick={() => toggleLang(lang)}
-                className="px-4 py-2 rounded-full text-sm font-medium bg-gray-700 text-white border border-gray-700 flex items-center gap-1"
+                className="px-4 py-2 rounded-full text-sm font-medium bg-ink text-cream ring-1 ring-ink flex items-center gap-1"
               >
                 {lang}
                 <X size={12} />
@@ -353,10 +356,10 @@ export default function ProfileEditPage() {
       </div>
 
       {/* Save button */}
-      <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">
+      <div className="fixed bottom-0 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
         <button
           onClick={handleSave}
-          className="w-full h-14 bg-blue-700 text-white font-black text-lg rounded-2xl active:bg-blue-800 transition-colors"
+          className="w-full h-14 bg-ink text-cream font-serif font-semibold text-lg rounded-2xl active:bg-terracotta-deep transition-colors"
         >
           שמור שינויים
         </button>

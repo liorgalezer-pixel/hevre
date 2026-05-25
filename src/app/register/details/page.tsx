@@ -1,13 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { User, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function RegisterDetailsPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const fullName = user.user_metadata?.full_name || user.user_metadata?.name || "";
+      if (fullName) {
+        const parts = fullName.trim().split(" ");
+        setFirstName(parts[0] || "");
+        setLastName(parts.slice(1).join(" ") || "");
+      }
+    });
+  }, []);
   const router = useRouter();
 
   const isValid = firstName.trim().length > 0 && lastName.trim().length > 0;

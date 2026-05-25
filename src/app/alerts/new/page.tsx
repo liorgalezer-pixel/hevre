@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { ChevronRight, Bell } from "lucide-react";
-import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import LocationPicker from "@/components/LocationPicker";
 import Toggle from "@/components/Toggle";
@@ -68,19 +67,19 @@ function NewAlertContent() {
 
   if (saved) {
     return (
-      <div className="flex flex-col min-h-screen bg-white items-center justify-center px-6 gap-5" dir="rtl">
-        <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center">
-          <Bell size={36} className="text-blue-700" strokeWidth={1.4} />
+      <div className="flex flex-col min-h-screen bg-paper items-center justify-center px-6 gap-5" dir="rtl">
+        <div className="w-20 h-20 bg-cream-warm rounded-full flex items-center justify-center">
+          <Bell size={36} className="text-terracotta" strokeWidth={1.4} />
         </div>
-        <h2 className="text-xl font-black text-gray-900 text-center">
+        <h2 className="font-serif text-xl font-bold text-ink text-center tracking-tight">
           {editId ? "ההתראה עודכנה בהצלחה!" : "ההתראה נוצרה בהצלחה!"}
         </h2>
-        <p className="text-sm text-gray-500 text-center leading-relaxed">
+        <p className="text-sm text-ink-2 text-center leading-relaxed">
           נעדכן אותך ברגע שיתפרסמו משרות חדשות שתואמות לקריטריונים שהגדרת
         </p>
         <button
           onClick={() => router.push("/alerts")}
-          className="w-full h-14 bg-blue-700 text-white font-bold text-base rounded-2xl active:bg-blue-800"
+          className="w-full h-14 bg-ink text-cream font-serif font-semibold text-base rounded-2xl active:bg-terracotta-deep"
         >
           חזרה להתראות
         </button>
@@ -89,37 +88,40 @@ function NewAlertContent() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-paper" dir="rtl">
 
-      <header className="px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+      <header className="px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">{editId ? "עריכת התראה" : "התראה חדשה"}</h1>
-        <Image src="/hevre-logo.png" alt="Hevre" width={72} height={28} className="object-contain" />
+        <h1 className="font-serif text-base font-bold text-ink tracking-tight">{editId ? "עריכת התראה" : "התראה חדשה"}</h1>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
       </header>
 
       <main className="flex-1 px-5 pt-6 pb-32 flex flex-col gap-7">
 
         <div>
-          <h2 className="text-2xl font-black text-gray-900 mb-1">הגדרת התראה</h2>
-          <p className="text-sm text-gray-400">קבל עדכון ברגע שתעלה משרה שמתאימה לך</p>
+          <h2 className="font-serif text-2xl font-bold text-ink mb-1 tracking-tight">הגדרת התראה</h2>
+          <p className="text-sm text-ink-3">קבל עדכון ברגע שתעלה משרה שמתאימה לך</p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-semibold text-gray-500 text-right">שם ההתראה</p>
+          <p className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שם ההתראה</p>
           <input
             type="text"
             value={alertName}
             onChange={(e) => setAlertName(e.target.value)}
             placeholder="למשל: עבודת לוקסמיט בניו יורק"
-            className="w-full h-12 border border-gray-200 rounded-2xl px-4 text-right text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-blue-400 transition-colors"
+            className="w-full h-12 bg-cream ring-1 ring-divider rounded-2xl px-4 text-right text-sm text-ink placeholder:text-ink-3 outline-none focus:ring-terracotta transition-colors"
           />
         </div>
 
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-gray-500 text-right">
-            קטגוריית עבודה <span className="text-red-400">*</span>
+          <p className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">
+            קטגוריית עבודה <span className="text-warm-danger">*</span>
           </p>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map(({ id, icon: Icon, label }) => {
@@ -128,8 +130,8 @@ function NewAlertContent() {
                 <button
                   key={id}
                   onClick={() => toggleCat(id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-colors ${
-                    active ? "bg-blue-700 text-white border-blue-700" : "bg-white text-gray-700 border-gray-300"
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full ring-1 text-sm font-semibold transition-colors ${
+                    active ? "bg-ink text-cream ring-ink" : "bg-paper text-ink-2 ring-divider"
                   }`}
                 >
                   <Icon size={14} strokeWidth={1.8} />
@@ -139,7 +141,7 @@ function NewAlertContent() {
             })}
           </div>
           {selectedCats.length === 0 && (
-            <p className="text-xs text-gray-400 text-right">בחר לפחות קטגוריה אחת</p>
+            <p className="text-xs text-ink-3 text-right">בחר לפחות קטגוריה אחת</p>
           )}
         </div>
 
@@ -151,7 +153,7 @@ function NewAlertContent() {
         />
 
         <div className="flex flex-col gap-4">
-          <p className="text-sm font-semibold text-gray-500 text-right">תנאים נוספים</p>
+          <p className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">תנאים נוספים</p>
           {[
             { label: "חובת רישיון נהיגה", value: license, onChange: () => setLicense((v) => !v) },
             { label: "כולל רכב", value: car, onChange: () => setCar((v) => !v) },
@@ -159,7 +161,7 @@ function NewAlertContent() {
             { label: "עבודה בחגים", value: holidays, onChange: () => setHolidays((v) => !v) },
           ].map(({ label, value, onChange }) => (
             <div key={label} className="flex items-center justify-between">
-              <span className="text-base font-bold text-gray-900">{label}</span>
+              <span className="text-base font-bold text-ink">{label}</span>
               <Toggle value={value} onChange={onChange} />
             </div>
           ))}
@@ -167,14 +169,14 @@ function NewAlertContent() {
 
       </main>
 
-      <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-5 py-4">
+      <div className="fixed bottom-0 right-0 left-0 bg-paper border-t border-divider px-5 py-4">
         <button
           onClick={handleSave}
           disabled={selectedCats.length === 0 || saving}
-          className={`w-full h-14 font-black text-base rounded-2xl flex items-center justify-center gap-2 transition-colors ${
+          className={`w-full h-14 font-serif font-semibold text-base rounded-2xl flex items-center justify-center gap-2 transition-colors ${
             selectedCats.length > 0 && !saving
-              ? "bg-blue-700 text-white active:bg-blue-800"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              ? "bg-ink text-cream active:bg-terracotta-deep"
+              : "bg-cream-warm text-ink-3 cursor-not-allowed"
           }`}
         >
           {saving ? <span className="animate-pulse">שומר...</span> : <><Bell size={18} strokeWidth={2} />שמור התראה</>}

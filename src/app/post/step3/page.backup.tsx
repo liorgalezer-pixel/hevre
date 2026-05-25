@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import posthog from "posthog-js";
-import { ChevronRight, Check } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { STORAGE_KEYS, myJobsKey } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_3;
 
-export default function PostJobStep4Page() {
+export default function PostJobStep3Page() {
   const router = useRouter();
   const [q1, setQ1] = useState("");
   const [q2, setQ2] = useState("");
@@ -31,9 +32,11 @@ export default function PostJobStep4Page() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ q1, q2, q3 }));
     const { data: { user } } = await supabase.auth.getUser();
 
+    // Merge all steps into one job entry and save to jobs list
     const step1 = JSON.parse(localStorage.getItem(STORAGE_KEYS.POST_STEP_1) || "{}");
     const step2 = JSON.parse(localStorage.getItem(STORAGE_KEYS.POST_STEP_2) || "{}");
     const newJob = {
+      id: Date.now().toString(),
       title: step1.jobTitle || "משרה חדשה",
       companyName: step1.companyName || "",
       description: step1.description || "",
@@ -52,10 +55,11 @@ export default function PostJobStep4Page() {
       car: step2.car || false,
       housing: step2.housing || false,
       q1, q2, q3,
+      active: true,
+      createdAt: new Date().toISOString(),
     };
-
     const { error } = await supabase.from("jobs").insert({
-      id: crypto.randomUUID(),
+      id: newJob.id,
       created_by: user?.id,
       title: newJob.title,
       company_name: newJob.companyName,
@@ -78,50 +82,33 @@ export default function PostJobStep4Page() {
       q2: newJob.q2,
       q3: newJob.q3,
     });
-
     if (error) { alert("שגיאה בשמירת המשרה: " + error.message); return; }
     posthog.capture("job_posted", { job_title: newJob.title, company: newJob.companyName, categories: newJob.categories });
-    localStorage.removeItem(STORAGE_KEYS.POST_STEP_1);
-    localStorage.removeItem(STORAGE_KEYS.POST_STEP_2);
-    localStorage.removeItem(STORAGE_KEYS.POST_STEP_3);
+
     setSuccess(true);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-gray-50" dir="rtl">
 
-      <header className="bg-paper px-4 pt-12 pb-4 border-b border-divider">
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-            <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-          </button>
-          <h1 className="font-serif text-lg font-bold text-ink tracking-tight">פרסום משרה</h1>
-          <div className="flex items-baseline gap-1">
-            <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {[1, 2, 3, 4].map(s => (
-            <div key={s} className="flex items-center gap-2 flex-1">
-              <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shrink-0 ${
-                s < 4 ? "bg-terracotta text-cream" : s === 4 ? "bg-terracotta text-cream" : "bg-cream-warm text-ink-3"
-              }`}>
-                {s < 4 ? <Check size={14} strokeWidth={3} /> : s}
-              </div>
-              {s < 4 && <div className={`h-1 flex-1 rounded-full ${s < 4 ? "bg-terracotta" : "bg-cream-warm"}`} />}
-            </div>
-          ))}
-        </div>
+      {/* Header */}
+      <header className="bg-white px-4 pt-12 pb-4 flex items-center justify-between border-b border-gray-100">
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+        </button>
+        <h1 className="text-lg font-bold text-gray-900">המשך פרסום משרה</h1>
+        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
       </header>
 
       <main className="flex-1 px-4 pt-6 pb-32 flex flex-col gap-6">
 
+        {/* Title */}
         <div className="text-right">
-          <h2 className="font-serif text-2xl font-bold text-ink tracking-tight">שאלות לסינון</h2>
-          <p className="font-mono text-[11px] text-ink-3 uppercase tracking-wider mt-1">שאלות שהמועמד חייב לענות עליהם</p>
+          <h2 className="text-2xl font-black text-blue-900">שאלות לסינון</h2>
+          <p className="text-sm text-gray-400 mt-1">שאלות שהמועמד חייב לענות עליהם</p>
         </div>
 
+        {/* Questions */}
         {[
           { label: "שאלה 1", value: q1, set: setQ1 },
           { label: "שאלה 2", value: q2, set: setQ2 },
@@ -129,8 +116,8 @@ export default function PostJobStep4Page() {
         ].map(({ label, value, set }) => (
           <div key={label} className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between" style={{ direction: "ltr" }}>
-              <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">אופציונלי</span>
-              <span className="text-base font-bold text-ink">{label}</span>
+              <span className="text-xs text-gray-400">אופציונלי</span>
+              <span className="text-base font-bold text-gray-900">{label}</span>
             </div>
             <textarea
               placeholder="כתוב את השאלה כאן..."
@@ -138,24 +125,25 @@ export default function PostJobStep4Page() {
               onChange={(e) => set(e.target.value)}
               dir="rtl"
               rows={4}
-              className="w-full rounded-xl bg-cream ring-1 ring-divider px-4 py-3 text-right text-base outline-none focus:ring-terracotta placeholder:text-ink-3 resize-none"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-right text-base outline-none focus:border-blue-500 placeholder:text-gray-300 resize-none"
             />
           </div>
         ))}
 
       </main>
 
+      {/* Success modal */}
       {success && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40" />
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-            <div className="bg-paper rounded-3xl w-full px-6 py-10 flex flex-col items-center gap-5 shadow-xl">
+            <div className="bg-white rounded-3xl w-full px-6 py-10 flex flex-col items-center gap-5 shadow-xl">
               <div className="text-5xl">🎉</div>
-              <h2 className="font-serif text-xl font-bold text-ink text-center tracking-tight">פרסום בוצע בהצלחה!</h2>
-              <p className="text-sm text-ink-3 text-center">המשרה שלך פורסמה ומועמדים יוכלו לראות אותה</p>
+              <h2 className="text-xl font-black text-gray-900 text-center">פרסום בוצע בהצלחה!</h2>
+              <p className="text-sm text-gray-400 text-center">המשרה שלך פורסמה ומועמדים יוכלו לראות אותה</p>
               <button
                 onClick={() => router.push("/")}
-                className="w-full h-13 bg-ink text-cream font-serif font-semibold text-base rounded-2xl active:bg-terracotta-deep transition-colors"
+                className="w-full h-13 bg-blue-700 text-white font-bold text-base rounded-2xl active:bg-blue-800 transition-colors"
               >
                 חזרה לדף הבית
               </button>
@@ -164,10 +152,11 @@ export default function PostJobStep4Page() {
         </>
       )}
 
-      <div className="fixed bottom-0 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
+      {/* Publish button */}
+      <div className="fixed bottom-0 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">
         <button
           onClick={handlePublish}
-          className="w-full h-14 bg-ink text-cream font-serif font-semibold text-lg rounded-2xl active:bg-terracotta-deep transition-colors"
+          className="w-full h-14 bg-blue-700 text-white font-bold text-lg rounded-2xl active:bg-blue-800 transition-colors"
         >
           פרסם משרה
         </button>

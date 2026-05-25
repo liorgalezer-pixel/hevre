@@ -1,7 +1,6 @@
 "use client";
 
-import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, ChevronDown, Share2 } from "lucide-react";
-import Image from "next/image";
+import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { Drawer } from "vaul";
@@ -34,6 +33,26 @@ function timeAgo(dateStr: string): string {
   return `לפני ${Math.floor(days / 7)} שבועות`;
 }
 
+/* Stable pastel avatar from company name — replaces the hard-coded blue avatar. */
+function CompanyAvatar({ name, size = 48, radius = 12 }: { name: string; size?: number; radius?: number }) {
+  const hash = [...name].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const hue = (hash * 47) % 360;
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        background: `oklch(0.94 0.04 ${hue})`,
+        color: `oklch(0.45 0.13 ${hue})`,
+      }}
+      className="flex items-center justify-center font-serif font-bold shrink-0"
+    >
+      <span style={{ fontSize: size * 0.42 }}>{name[0]}</span>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -47,6 +66,7 @@ export default function HomePage() {
   const [alertNotifs, setAlertNotifs] = useState<{ id: string; jobId: string; jobTitle: string; alertName: string }[]>([]);
   const [userJobs, setUserJobs] = useState<(MockJob & { created_at?: string })[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
   const [savedStorageKey, setSavedStorageKey] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [searchText, setSearchText] = useState("");
@@ -92,15 +112,18 @@ export default function HomePage() {
         const savedJobs: MockJob[] = JSON.parse(localStorage.getItem(sKey) || "[]");
         setSavedIds(savedJobs.map(j => j.id));
 
-        const seekerClearedAt = localStorage.getItem("hevre_notif_cleared_at");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let seekerQuery: any = supabase
+        // Load dismissed job IDs (user already dismissed these notifications)
+        const dismissedIds: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
+        let appsQuery = supabase
           .from("applications")
-          .select("job_id, status, created_at, jobs(title, company_name)")
+          .select("job_id, status, jobs(title, company_name)")
           .eq("applicant_id", user.id)
           .in("status", ["approved", "rejected"]);
-        if (seekerClearedAt) seekerQuery = seekerQuery.gt("created_at", seekerClearedAt);
-        const { data: apps } = await seekerQuery;
+        if (dismissedIds.length > 0) {
+          appsQuery = appsQuery.not("job_id", "in", `(${dismissedIds.join(",")})`);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: apps } = await (appsQuery as any);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const approved = (apps || []).filter((a: any) => a.status === "approved").map((a: any) => ({
           jobId: a.job_id as string,
@@ -120,6 +143,13 @@ export default function HomePage() {
           .eq("applicant_id", user.id)
           .eq("status", "rejected");
         setRejectedJobIds(new Set((allRejected || []).map((a: { job_id: string }) => a.job_id)));
+
+        // Load all applied job IDs for badge display
+        const { data: allApplied } = await supabase
+          .from("applications")
+          .select("job_id")
+          .eq("applicant_id", user.id);
+        setAppliedJobIds(new Set((allApplied || []).map((a: { job_id: string }) => a.job_id)));
 
         // Alert notifications
         const { data: alertNotifData } = await supabase
@@ -246,6 +276,7 @@ export default function HomePage() {
       posthog.capture("application_submitted", { job_id: selectedJob.id, category: selectedJob.categories?.[0] ?? null });
       setApplySuccess(true);
       setAlreadyApplied(true);
+      setAppliedJobIds(prev => new Set([...prev, selectedJob.id]));
       setTimeout(() => setDrawerOpen(false), 1800);
     }
   };
@@ -274,29 +305,36 @@ export default function HomePage() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
       {/* Header */}
-      <header className="bg-white px-4 pt-10 pb-3 sticky top-0 z-40 shadow-sm">
+      <header className="bg-paper px-4 pt-10 pb-3 sticky top-0 z-40 border-b border-divider">
         <div className="flex items-center justify-between mb-3">
+          {/* Left side: messages + bell */}
           <div className="flex items-center gap-1">
             <button onClick={() => router.push("/messages")} className="relative w-11 h-11 flex items-center justify-center">
-              <MessageCircle size={26} className="text-gray-700" strokeWidth={1.8} />
+              <MessageCircle size={24} className="text-ink" strokeWidth={1.8} />
             </button>
             <div ref={bellRef} className="relative">
               <button onClick={() => setBellOpen((v) => !v)} className="relative w-11 h-11 flex items-center justify-center">
-                <Bell size={26} className="text-gray-700" strokeWidth={1.8} />
+                <Bell size={24} className="text-ink" strokeWidth={1.8} />
                 {(approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-terracotta rounded-full" />
                 )}
               </button>
               {bellOpen && (
-                <div className="absolute top-12 right-0 z-50 bg-white rounded-2xl shadow-xl border border-gray-100 w-72 p-4 flex flex-col gap-2" dir="rtl">
+                <div className="absolute top-12 right-0 z-50 bg-paper rounded-2xl shadow-xl ring-1 ring-divider w-72 p-4 flex flex-col gap-2" dir="rtl">
                   <div className="flex items-center justify-between mb-1" style={{ direction: "ltr" }}>
                     <button
                       onClick={async () => {
-                        const now = new Date().toISOString();
-                        localStorage.setItem("hevre_notif_cleared_at", now);
+                        // Dismiss current approved/rejected notifications by job ID
+                        const existingDismissed: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
+                        const newDismissed = [...new Set([
+                          ...existingDismissed,
+                          ...approvedApps.map(a => a.jobId),
+                          ...rejectedApps.map(a => a.jobId),
+                        ])];
+                        localStorage.setItem("hevre_notif_dismissed", JSON.stringify(newDismissed));
                         setNewApplicants([]);
                         setApprovedApps([]);
                         setRejectedApps([]);
@@ -305,60 +343,64 @@ export default function HomePage() {
                           setAlertNotifs([]);
                         }
                       }}
-                      className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200"
+                      className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-cream"
                     >
-                      <Trash2 size={14} className="text-gray-400" strokeWidth={1.8} />
+                      <Trash2 size={14} className="text-ink-3" strokeWidth={1.8} />
                     </button>
-                    <p className="text-sm font-bold text-gray-700">התראות</p>
+                    <p className="font-serif text-base font-semibold text-ink">התראות</p>
                     <div className="w-7" />
                   </div>
-                  <div className="flex flex-col gap-2 text-sm text-gray-500">
+                  <div className="flex flex-col gap-2">
                     {newApplicants.map((n) => (
                       <button key={`${n.jobId}-${n.applicantName}`} onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}`); }}
-                        className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-blue-100">
-                        <span className="text-blue-700 font-bold text-xs">👤 מועמד חדש!</span>
-                        <span className="text-gray-700 font-medium">{n.applicantName}</span>
-                        <span className="text-gray-400 text-xs">הגיש מועמדות ל: {n.jobTitle}</span>
+                        className="bg-warm-info-bg ring-1 ring-divider rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-cream">
+                        <span className="text-warm-info-text font-bold text-xs">👤 מועמד חדש!</span>
+                        <span className="text-ink font-medium text-sm">{n.applicantName}</span>
+                        <span className="text-ink-3 text-xs">הגיש מועמדות ל: {n.jobTitle}</span>
                       </button>
                     ))}
                     {approvedApps.map((app) => (
                       <button key={app.jobId} onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
-                        className="bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-green-100">
-                        <span className="text-green-700 font-bold text-xs">✓ מועמדות אושרה!</span>
-                        <span className="text-gray-700 font-medium">{app.title}</span>
-                        <span className="text-gray-400 text-xs">{app.company}</span>
+                        className="bg-warm-success-bg ring-1 ring-warm-success-border rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5">
+                        <span className="text-warm-success font-bold text-xs">✓ מועמדות אושרה!</span>
+                        <span className="text-ink font-medium text-sm">{app.title}</span>
+                        <span className="text-ink-3 text-xs">{app.company}</span>
                       </button>
                     ))}
                     {rejectedApps.map((app) => (
                       <button key={app.jobId} onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
-                        className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-red-100">
-                        <span className="text-red-600 font-bold text-xs">✗ מועמדות נדחתה</span>
-                        <span className="text-gray-700 font-medium">{app.title}</span>
+                        className="bg-warm-danger-bg ring-1 ring-warm-danger-border rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5">
+                        <span className="text-warm-danger font-bold text-xs">✗ מועמדות נדחתה</span>
+                        <span className="text-ink font-medium text-sm">{app.title}</span>
                       </button>
                     ))}
                     {alertNotifs.map((n) => (
                       <button key={n.id} onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}/view`); }}
-                        className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-purple-100">
-                        <span className="text-purple-700 font-bold text-xs">🔔 משרה חדשה מתאימה!</span>
-                        <span className="text-gray-700 font-medium">{n.jobTitle}</span>
-                        <span className="text-gray-400 text-xs">התראה: {n.alertName}</span>
+                        className="bg-warm-purple-bg ring-1 ring-divider rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5">
+                        <span className="text-warm-purple font-bold text-xs">🔔 משרה חדשה מתאימה!</span>
+                        <span className="text-ink font-medium text-sm">{n.jobTitle}</span>
+                        <span className="text-ink-3 text-xs">התראה: {n.alertName}</span>
                       </button>
                     ))}
                     {approvedApps.length === 0 && rejectedApps.length === 0 && newApplicants.length === 0 && alertNotifs.length === 0 && (
-                      <p className="bg-gray-50 rounded-xl px-3 py-2.5">אין הודעות חדשות כרגע</p>
+                      <p className="bg-cream rounded-xl px-3 py-2.5 text-ink-3 text-sm">אין הודעות חדשות כרגע</p>
                     )}
                   </div>
                 </div>
               )}
             </div>
           </div>
-          <Image src="/hevre-logo.png" alt="Hevre" width={100} height={40} className="object-contain" priority />
+          {/* Right side: wordmark logo */}
+          <div className="flex items-baseline gap-1">
+            <span className="font-serif text-2xl font-bold text-ink tracking-tight">Hevre</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+          </div>
         </div>
 
         {/* Search + Filter */}
         <div className="flex gap-2 items-center">
           <div className="flex-1 relative">
-            <Search size={17} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={17} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3" />
             <input
               type="text"
               value={searchText}
@@ -372,22 +414,22 @@ export default function HomePage() {
                 }
               }}
               placeholder="חיפוש משרה..."
-              className="w-full bg-gray-100 rounded-xl h-11 pr-9 pl-3 text-right text-sm outline-none placeholder:text-gray-400 text-gray-800"
+              className="w-full bg-cream rounded-xl h-11 pr-9 pl-3 text-right text-sm outline-none placeholder:text-ink-3 text-ink"
             />
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button onClick={() => router.push("/filter")} className={`relative rounded-xl px-4 h-11 flex items-center gap-1.5 font-semibold text-sm active:bg-blue-800 ${hasActiveFilters ? "bg-blue-900" : "bg-blue-700"} text-white`}>
+            <button onClick={() => router.push("/filter")} className={`relative rounded-xl px-4 h-11 flex items-center gap-1.5 font-semibold text-sm text-white ${hasActiveFilters ? "bg-ink active:bg-ink/90" : "bg-terracotta active:bg-terracotta-deep"}`}>
               <SlidersHorizontal size={15} />
               סנן
               {hasActiveFilters && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-orange-400 rounded-full text-[10px] font-black flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-terracotta-deep rounded-full text-[10px] font-black flex items-center justify-center ring-2 ring-paper">
                   {[filters!.categories.length, filters!.states.length, filters!.cities.length, filters!.license ? 1 : 0, filters!.car ? 1 : 0, filters!.housing ? 1 : 0, filters!.weekend ? 1 : 0, filters!.holidays ? 1 : 0].reduce((a, b) => a + b, 0)}
                 </span>
               )}
             </button>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="w-11 h-11 flex items-center justify-center rounded-xl bg-red-50 active:bg-red-100">
-                <X size={18} className="text-red-500" strokeWidth={2.5} />
+              <button onClick={clearFilters} className="w-11 h-11 flex items-center justify-center rounded-xl bg-warm-danger-bg active:opacity-80">
+                <X size={18} className="text-warm-danger" strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -395,18 +437,20 @@ export default function HomePage() {
       </header>
 
       {/* Category quick filters */}
-      <div className="bg-white border-b border-gray-100 px-3 py-3">
-        <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      <div className="bg-paper border-b border-divider px-3 py-3">
+        <div className="flex gap-2 overflow-x-auto scrollbar-none">
           {CATEGORIES.map(({ id, icon: Icon, label }) => (
             <button
               key={id}
               onClick={() => setActiveCategory(activeCategory === id ? null : id)}
-              className={`flex flex-col items-center justify-center gap-1.5 min-w-[76px] h-[78px] rounded-2xl border shrink-0 transition-colors ${
-                activeCategory === id ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white"
+              className={`flex flex-col items-center justify-center gap-1.5 min-w-[80px] h-[84px] rounded-2xl shrink-0 transition-colors ${
+                activeCategory === id
+                  ? "bg-terracotta text-white"
+                  : "bg-paper ring-1 ring-divider text-ink"
               }`}
             >
-              <Icon size={26} className={activeCategory === id ? "text-blue-700" : "text-gray-600"} strokeWidth={1.5} />
-              <span className={`text-xs font-medium ${activeCategory === id ? "text-blue-700" : "text-gray-700"}`}>{label}</span>
+              <Icon size={24} strokeWidth={activeCategory === id ? 2 : 1.6} />
+              <span className="text-xs font-medium">{label}</span>
             </button>
           ))}
         </div>
@@ -414,13 +458,13 @@ export default function HomePage() {
 
       {/* Not logged in banner */}
       {isLoggedIn === false && (
-        <div className="mx-3 mt-3 bg-gradient-to-l from-blue-700 to-blue-500 rounded-2xl px-4 py-4 flex items-center justify-between gap-3 shadow-md" style={{ direction: "ltr" }}>
-          <button onClick={() => router.push("/login")} className="shrink-0 bg-white text-blue-700 font-black text-sm rounded-xl px-4 py-2 active:bg-blue-50">
+        <div className="mx-3 mt-3 bg-ink rounded-2xl px-4 py-4 flex items-center justify-between gap-3" style={{ direction: "ltr" }}>
+          <button onClick={() => router.push("/login")} className="shrink-0 bg-terracotta text-white font-serif font-semibold text-sm rounded-xl px-4 py-2 active:bg-terracotta-deep">
             התחבר / הירשם
           </button>
           <div className="flex-1 flex flex-col gap-0.5" dir="rtl">
-            <p className="text-white font-black text-sm leading-snug">עדיין לא מחובר לחבר׳ה?</p>
-            <p className="text-blue-100 text-xs leading-snug">התחבר / הירשם בחינם עכשיו</p>
+            <p className="text-cream font-serif font-semibold text-base leading-snug">עדיין לא מחובר לחבר׳ה?</p>
+            <p className="text-cream/60 text-xs leading-snug">התחבר / הירשם בחינם עכשיו</p>
           </div>
         </div>
       )}
@@ -428,26 +472,27 @@ export default function HomePage() {
       {/* Jobs feed */}
       <main className="flex-1 px-3 py-4 pb-24 flex flex-col gap-3">
         <div className="text-right">
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="font-serif text-2xl font-bold text-ink tracking-tight">
             {activeCategory ? CATEGORIES.find(c => c.id === activeCategory)?.label : 'משרות ארה"ב'}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">{filtered.length} משרות פתוחות</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-3 mt-1.5">{filtered.length} משרות פתוחות</p>
         </div>
 
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <span className="text-4xl">🔍</span>
-            <p className="text-gray-400 text-sm">אין משרות בקטגוריה זו כרגע</p>
+            <p className="text-ink-3 text-sm">אין משרות בקטגוריה זו כרגע</p>
           </div>
         )}
 
         {filtered.map((job) => {
           const isSaved = savedIds.includes(job.id);
+          const isApplied = appliedJobIds.has(job.id);
           return (
             <div
               key={job.id}
               onClick={() => openDrawer(job)}
-              className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3 text-right w-full active:scale-[0.99] transition-transform cursor-pointer"
+              className="bg-paper rounded-2xl p-4 ring-1 ring-divider flex flex-col gap-3 text-right w-full active:scale-[0.99] transition-transform cursor-pointer"
             >
               {/* Top row */}
               <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
@@ -455,58 +500,65 @@ export default function HomePage() {
                   onClick={(e) => toggleSave(job, e)}
                   className="w-9 h-9 flex items-center justify-center rounded-full shrink-0"
                 >
-                  <Heart size={20} className={isSaved ? "text-red-500 fill-red-500" : "text-gray-300"} strokeWidth={1.8} />
+                  <Heart
+                    size={20}
+                    className={isSaved ? "text-terracotta fill-terracotta" : "text-ink-3"}
+                    strokeWidth={1.8}
+                  />
                 </button>
                 <div className="flex-1 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <h2 className="text-base font-black text-gray-900 leading-snug">{job.title}</h2>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-0.5">{job.company}</p>
+                  <h2 className="font-serif text-base font-semibold text-ink leading-snug tracking-tight">{job.title}</h2>
+                  <p className="text-sm text-ink-2 mt-0.5">{job.company}</p>
                   {(job as MockJob & { created_at?: string }).created_at && (
-                    <p className="text-[11px] text-blue-500 font-medium mt-0.5">
+                    <p className="font-mono text-[11px] text-terracotta font-semibold mt-1 tracking-wide uppercase">
                       {timeAgo((job as MockJob & { created_at?: string }).created_at!)}
                     </p>
                   )}
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 text-xl font-black text-blue-700">
-                  {job.company[0]}
-                </div>
+                <CompanyAvatar name={job.company} size={48} />
               </div>
 
+              {/* Applied badge */}
+              {isApplied && (
+                <div className="bg-warm-success-bg ring-1 ring-warm-success-border rounded-xl px-3 py-2 flex items-center gap-1.5">
+                  <span className="text-warm-success text-xs font-bold">✓ מועמדות הוגשה</span>
+                </div>
+              )}
+
               {/* Badges */}
-              <div className="flex flex-wrap gap-2 justify-start" dir="rtl">
+              <div className="flex flex-wrap gap-1.5 justify-start" dir="rtl">
                 {job.salary && (
-                  <span className="flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full border border-green-100">
+                  <span className="flex items-center gap-1 bg-warm-success-bg text-warm-success text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-warm-success-border">
                     <DollarSign size={11} strokeWidth={2.5} />{job.salary}
                   </span>
                 )}
                 {job.location && (
-                  <span className="flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                  <span className="flex items-center gap-1 bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">
                     <MapPin size={11} strokeWidth={2} />{job.location}
                   </span>
                 )}
                 {job.hours && (
-                  <span className="flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">
+                  <span className="flex items-center gap-1 bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">
                     <Clock size={11} strokeWidth={2} />{job.hours}
                   </span>
                 )}
-                {job.car && <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">🚗 כולל רכב</span>}
-                {job.license && <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">🪪 דרוש רישיון</span>}
-                {job.housing && <span className="bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full">🏠 כולל דיור</span>}
+                {job.car && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🚗 כולל רכב</span>}
+                {job.license && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🪪 דרוש רישיון</span>}
+                {job.housing && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🏠 כולל דיור</span>}
               </div>
-
             </div>
           );
         })}
+
         {/* Load more */}
         {hasMore && !searchText && !activeCategory && !filters && (
           <button
             onClick={() => fetchJobs(dbPage + 1, false)}
             disabled={loadingMore}
-            className="w-full h-12 border border-gray-200 rounded-2xl text-sm font-bold text-gray-500 active:bg-gray-50 flex items-center justify-center gap-2"
+            className="w-full h-12 ring-1 ring-divider rounded-2xl text-sm font-semibold text-ink-2 active:bg-cream-warm flex items-center justify-center gap-2"
           >
             {loadingMore ? (
-              <span className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+              <span className="w-5 h-5 border-2 border-divider border-t-terracotta rounded-full animate-spin" />
             ) : "טען עוד משרות"}
           </button>
         )}
@@ -517,12 +569,12 @@ export default function HomePage() {
       {/* Job Details Drawer */}
       <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
         <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col bg-white rounded-t-3xl max-h-[90vh]" dir="rtl">
+          <Drawer.Overlay className="fixed inset-0 bg-ink/40 z-40" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 flex flex-col bg-paper rounded-t-3xl max-h-[90vh]" dir="rtl">
             <Drawer.Title className="sr-only">{selectedJob?.title ?? "פרטי משרה"}</Drawer.Title>
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
-              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              <div className="w-10 h-1 bg-divider rounded-full" />
             </div>
 
             {selectedJob && (
@@ -532,8 +584,8 @@ export default function HomePage() {
 
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-4" style={{ direction: "ltr" }}>
-                    <Drawer.Close className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200 shrink-0">
-                      <X size={18} className="text-gray-600" strokeWidth={2} />
+                    <Drawer.Close className="w-9 h-9 flex items-center justify-center rounded-full bg-cream active:bg-cream-warm shrink-0">
+                      <X size={18} className="text-ink-2" strokeWidth={2} />
                     </Drawer.Close>
                     <button
                       onClick={async () => {
@@ -545,58 +597,56 @@ export default function HomePage() {
                           alert("הקישור הועתק!");
                         }
                       }}
-                      className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200 shrink-0"
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-cream active:bg-cream-warm shrink-0"
                     >
-                      <Share2 size={18} className="text-gray-600" strokeWidth={2} />
+                      <Share2 size={18} className="text-ink-2" strokeWidth={2} />
                     </button>
                     <div className="flex-1 text-right">
-                      <h2 className="text-xl font-black text-gray-900 leading-tight">{selectedJob.title}</h2>
-                      <p className="text-sm text-gray-500 mt-0.5">{selectedJob.company}</p>
+                      <h2 className="font-serif text-2xl font-bold text-ink leading-tight tracking-tight">{selectedJob.title}</h2>
+                      <p className="text-sm text-ink-2 mt-0.5">{selectedJob.company}</p>
                     </div>
-                    <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 text-2xl font-black text-blue-700">
-                      {selectedJob.company[0]}
-                    </div>
+                    <CompanyAvatar name={selectedJob.company} size={56} radius={14} />
                   </div>
 
                   {/* Key info chips */}
                   <div className="flex flex-wrap gap-2 mb-5 justify-start" dir="rtl">
                     {selectedJob.salary && (
-                      <span className="flex items-center gap-1.5 bg-green-50 text-green-700 text-sm font-bold px-3 py-1.5 rounded-full border border-green-100">
+                      <span className="flex items-center gap-1.5 bg-warm-success-bg text-warm-success text-sm font-bold px-3 py-1.5 rounded-full ring-1 ring-warm-success-border">
                         <DollarSign size={13} strokeWidth={2.5} />{selectedJob.salary}
                       </span>
                     )}
                     {selectedJob.location && (
-                      <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-sm font-medium px-3 py-1.5 rounded-full">
+                      <span className="flex items-center gap-1.5 bg-warm-info-bg text-warm-info-text text-sm font-semibold px-3 py-1.5 rounded-full">
                         <MapPin size={13} strokeWidth={2} />{selectedJob.location}
                       </span>
                     )}
                     {selectedJob.hours && (
-                      <span className="flex items-center gap-1.5 bg-gray-100 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-full">
+                      <span className="flex items-center gap-1.5 bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">
                         <Clock size={13} strokeWidth={2} />{selectedJob.hours}
                       </span>
                     )}
-                    {selectedJob.car && <span className="bg-gray-100 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-full">🚗 כולל רכב</span>}
-                    {selectedJob.license && <span className="bg-gray-100 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-full">🪪 דרוש רישיון</span>}
-                    {selectedJob.housing && <span className="bg-gray-100 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-full">🏠 כולל דיור</span>}
-                    {selectedJob.weekend && <span className="bg-gray-100 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-full">📅 עבודה בסוף שבוע</span>}
+                    {selectedJob.car && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🚗 כולל רכב</span>}
+                    {selectedJob.license && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🪪 דרוש רישיון</span>}
+                    {selectedJob.housing && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🏠 כולל דיור</span>}
+                    {selectedJob.weekend && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">📅 עבודה בסוף שבוע</span>}
                   </div>
 
                   {/* Description */}
                   {selectedJob.description && (
                     <div className="mb-5">
-                      <h3 className="text-base font-bold text-gray-900 mb-2">תיאור המשרה</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed">{selectedJob.description}</p>
+                      <h3 className="font-serif text-base font-semibold text-ink mb-2 tracking-tight">תיאור המשרה</h3>
+                      <p className="text-sm text-ink-2 leading-relaxed">{selectedJob.description}</p>
                     </div>
                   )}
 
                   {/* Requirements */}
                   {selectedJob.requirements?.length > 0 && (
                     <div className="mb-5">
-                      <h3 className="text-base font-bold text-gray-900 mb-2">דרישות</h3>
+                      <h3 className="font-serif text-base font-semibold text-ink mb-2 tracking-tight">דרישות</h3>
                       <ul className="flex flex-col gap-1.5">
                         {selectedJob.requirements.map((req, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                            <span className="text-green-500 font-bold mt-0.5">✓</span>
+                          <li key={i} className="flex items-start gap-2 text-sm text-ink-2">
+                            <span className="text-warm-success font-bold mt-0.5">✓</span>
                             {req}
                           </li>
                         ))}
@@ -607,11 +657,14 @@ export default function HomePage() {
                   {/* Questions */}
                   {selectedJob.questions?.length > 0 && !alreadyApplied && (
                     <div className="mb-5">
-                      <h3 className="text-base font-bold text-gray-900 mb-3">שאלות המעסיק</h3>
+                      <h3 className="font-serif text-base font-semibold text-ink mb-3 tracking-tight">שאלות המעסיק</h3>
                       <div className="flex flex-col gap-3">
                         {selectedJob.questions.map((q, i) => (
                           <div key={i}>
-                            <label className="text-sm text-gray-600 font-medium block mb-1">{q}</label>
+                            <label className="text-sm text-ink font-medium block mb-1">
+                              <span className="font-mono text-[10px] text-terracotta font-bold ml-1.5">0{i + 1}</span>
+                              {q}
+                            </label>
                             <textarea
                               value={answers[i] || ""}
                               onChange={(e) => {
@@ -621,7 +674,7 @@ export default function HomePage() {
                               }}
                               rows={2}
                               dir="rtl"
-                              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-right outline-none resize-none bg-gray-50 focus:border-blue-400"
+                              className="w-full ring-1 ring-divider rounded-xl px-3 py-2 text-sm text-right outline-none resize-none bg-cream text-ink focus:ring-terracotta focus:ring-2"
                               placeholder="תשובתך..."
                             />
                           </div>
@@ -632,27 +685,29 @@ export default function HomePage() {
                 </div>
 
                 {/* Sticky apply button */}
-                <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-4 pb-8">
+                <div className="absolute bottom-0 left-0 right-0 bg-paper border-t border-divider px-5 py-4 pb-8">
                   {applySuccess ? (
-                    <div className="w-full h-14 bg-green-500 rounded-2xl flex items-center justify-center gap-2">
+                    <div className="w-full h-14 bg-warm-success rounded-2xl flex items-center justify-center gap-2">
                       <CheckCircle2 size={22} className="text-white" strokeWidth={2} />
-                      <span className="text-white font-black text-base">המועמדות נשלחה!</span>
+                      <span className="text-white font-serif font-semibold text-base">המועמדות נשלחה!</span>
                     </div>
                   ) : alreadyApplied ? (
-                    <div className="w-full h-14 bg-gray-100 rounded-2xl flex items-center justify-center gap-2">
-                      <CheckCircle2 size={20} className="text-gray-500" strokeWidth={2} />
-                      <span className="text-gray-500 font-bold text-base">כבר הגשת מועמדות</span>
+                    <div className="w-full h-14 bg-cream rounded-2xl flex items-center justify-center gap-2">
+                      <CheckCircle2 size={20} className="text-ink-2" strokeWidth={2} />
+                      <span className="text-ink-2 font-semibold text-base">כבר הגשת מועמדות</span>
                     </div>
                   ) : (
                     <button
                       onClick={handleQuickApply}
                       disabled={applying || (selectedJob.questions?.length > 0 && answers.some(a => !a.trim()))}
-                      className="w-full h-14 bg-blue-700 text-white font-black text-base rounded-2xl active:bg-blue-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                      className="w-full h-14 bg-ink text-cream font-serif font-semibold text-base rounded-2xl active:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                     >
                       {applying ? (
                         <span className="animate-pulse">שולח...</span>
                       ) : (
-                        <>⚡ הגשת מועמדות מהירה</>
+                        <>
+                          <span className="text-terracotta">⚡</span> הגשת מועמדות מהירה
+                        </>
                       )}
                     </button>
                   )}

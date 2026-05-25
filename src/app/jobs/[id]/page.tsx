@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { ChevronRight, Search, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, Home, PlusCircle, User, ChevronLeft, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
+import { ChevronRight, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, ChevronLeft, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import posthog from "posthog-js";
+import BottomNav from "@/components/BottomNav";
 
 type Job = {
   id: string;
@@ -57,6 +57,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [viewCount, setViewCount] = useState(0);
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [showArchivedApplicants, setShowArchivedApplicants] = useState(false);
+  const [conversationCount, setConversationCount] = useState(0);
 
   const loadApplicants = async () => {
     const { data } = await supabase
@@ -96,6 +97,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         .eq("job_id", id);
       setViewCount(vCount || 0);
       await loadApplicants();
+      const { count: convCount } = await supabase
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("job_id", id);
+      setConversationCount(convCount || 0);
       setLoading(false);
     })();
   }, [id]);
@@ -120,7 +126,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from("applications").update({ status: "approved" }).eq("id", applicant.id);
-    // Create or get conversation
     const { data: conv } = await supabase
       .from("conversations")
       .upsert(
@@ -144,14 +149,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   if (loading) return (
     <div className="flex flex-col min-h-screen items-center justify-center" dir="rtl">
-      <div className="w-8 h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-terracotta border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (!job) return (
     <div className="flex flex-col min-h-screen items-center justify-center gap-4" dir="rtl">
-      <p className="text-gray-500 text-base">המשרה לא נמצאה</p>
-      <button onClick={() => router.push("/my-jobs")} className="text-blue-700 font-bold">חזרה למודעות שלי</button>
+      <p className="text-ink-2 text-base">המשרה לא נמצאה</p>
+      <button onClick={() => router.push("/my-jobs")} className="text-terracotta font-bold">חזרה למודעות שלי</button>
     </div>
   );
 
@@ -162,42 +167,42 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const questions = [job.q1, job.q2, job.q3].filter(Boolean) as string[];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
-      {/* Header */}
-      <header className="bg-white px-4 pt-12 pb-3 flex items-center justify-between border-b border-gray-100">
+      <header className="bg-paper px-4 pt-12 pb-3 flex items-center justify-between border-b border-divider sticky top-0 z-40">
         <button onClick={() => router.push("/my-jobs")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
-        <button className="w-11 h-11 flex items-center justify-center">
-          <Search size={22} className="text-gray-700" strokeWidth={1.8} />
-        </button>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
+        <div className="w-11" />
       </header>
 
       <main className="flex-1 px-4 pt-5 pb-44 flex flex-col gap-4">
 
         {/* Title + logo */}
         <div className="flex items-center justify-between gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-cream-warm flex items-center justify-center overflow-hidden shrink-0 font-serif text-xl font-bold text-terracotta">
             {job.logo_url
               ? <Image src={job.logo_url} alt="לוגו" width={48} height={48} className="w-full h-full object-cover" />
-              : <span className="text-lg font-black text-gray-400">H</span>}
+              : (job.title[0] || "H")}
           </div>
-          <h1 className="text-xl font-black text-gray-900 text-right leading-snug flex-1">{job.title}</h1>
+          <h1 className="font-serif text-xl font-bold text-ink text-right leading-snug tracking-tight flex-1">{job.title}</h1>
         </div>
 
         {/* Status tags */}
         <div className="flex gap-2 justify-end">
-          <span className="flex items-center gap-1.5 text-sm font-medium text-white bg-gray-700 rounded-lg px-3 py-1">
-            <span className={`w-2 h-2 rounded-full inline-block ${frozen ? "bg-red-400" : "bg-green-400"}`} />
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-cream bg-ink rounded-lg px-3 py-1.5">
+            <span className={`w-2 h-2 rounded-full inline-block ${frozen ? "bg-warm-danger" : "bg-warm-success"}`} />
             {frozen ? "קפוא" : "פעיל"}
           </span>
-          <span className="text-sm font-medium text-white bg-gray-700 rounded-lg px-3 py-1">מודעה בסיסית</span>
+          <span className="text-xs font-semibold text-ink-2 bg-cream-warm ring-1 ring-divider rounded-lg px-3 py-1.5">מודעה בסיסית</span>
         </div>
 
         {/* Details */}
-        <div className="flex flex-col gap-2.5 mt-1">
+        <div className="bg-paper rounded-2xl px-4 py-4 flex flex-col gap-2.5">
           {[
             { icon: Globe, label: "מדינה", text: job.job_states?.join(", ") || "לא צוין" },
             { icon: Building2, label: "עיר", text: job.job_cities?.join(", ") || "לא צוין" },
@@ -208,88 +213,93 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             { icon: BedDouble, label: "מספק דיור", text: job.housing ? "כן" : "לא" },
           ].map(({ icon: Icon, label, text }, i) => (
             <div key={i} className="flex items-center gap-2" style={{ direction: "ltr" }}>
-              <span className="text-sm text-gray-500 flex-1 text-left">{text}</span>
-              <span className="text-sm text-gray-400">|</span>
-              <span className="text-sm text-gray-700 font-medium">{label}</span>
-              <Icon size={18} className="text-gray-500 shrink-0" strokeWidth={1.6} />
+              <span className="text-sm text-ink-2 flex-1 text-left">{text}</span>
+              <span className="text-sm text-ink-3">|</span>
+              <span className="text-sm text-ink font-medium">{label}</span>
+              <Icon size={17} className="text-ink-3 shrink-0" strokeWidth={1.6} />
             </div>
           ))}
         </div>
 
         {/* Chat row */}
-        <div className="flex items-center justify-between border-t border-b border-gray-100 py-3 mt-1" style={{ direction: "ltr" }}>
-          <button onClick={() => router.push("/messages")} className="text-yellow-500 font-bold text-base active:opacity-70">לצ׳אט</button>
+        <div className="bg-paper rounded-2xl px-4 py-3 flex items-center justify-between" style={{ direction: "ltr" }}>
+          <button onClick={() => router.push("/messages")} className="text-terracotta font-bold text-base active:opacity-70">לצ׳אט</button>
           <div className="flex items-center gap-2">
-            <MessageCircle size={24} className="text-gray-700" strokeWidth={1.6} />
-            {approved.length > 0 && (
-              <span className="text-sm text-gray-600">יש לך {approved.length} שיחות פתוחות</span>
+            <MessageCircle size={22} className="text-ink-3" strokeWidth={1.6} />
+            {conversationCount > 0 && (
+              <span className="text-sm text-ink-2">יש לך {conversationCount} שיחות פתוחות</span>
             )}
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex justify-between mt-1">
+        <div className="bg-paper rounded-2xl px-4 py-4 flex justify-between">
           {[
-            { icon: Pencil, label: "עריכה", action: () => router.push(`/jobs/${id}/edit`) },
-            { icon: frozen ? PlayCircle : Snowflake, label: frozen ? "החזרה לפעילות" : "הקפאה", action: () => frozen ? handleUnfreeze() : setConfirmFreeze(true) },
-            { icon: Share2, label: "שיתוף", action: () => {} },
-            { icon: Trash2, label: "הסרה", action: () => setConfirmRemove(true) },
-          ].map(({ icon: Icon, label, action }) => (
+            { icon: Trash2, label: "הסרה", action: () => setConfirmRemove(true), danger: true },
+            { icon: Share2, label: "שיתוף", action: async () => {
+              const url = `${window.location.origin}/jobs/${id}/view`;
+              const title = job?.title ?? "משרה ב-Hevre";
+              if (navigator.share) { await navigator.share({ title, url }); }
+              else { await navigator.clipboard.writeText(url); alert("הקישור הועתק!"); }
+            }, danger: false },
+            { icon: frozen ? PlayCircle : Snowflake, label: frozen ? "החזרה לפעילות" : "הקפאה", action: () => frozen ? handleUnfreeze() : setConfirmFreeze(true), danger: false },
+            { icon: Pencil, label: "עריכה", action: () => router.push(`/jobs/${id}/edit`), danger: false },
+          ].map(({ icon: Icon, label, action, danger }) => (
             <button key={label} onClick={action} className="flex flex-col items-center gap-1.5 active:opacity-60">
-              <Icon size={24} className={label === "הסרה" ? "text-red-400" : "text-gray-700"} strokeWidth={1.6} />
-              <span className={`text-xs font-medium ${label === "הסרה" ? "text-red-400" : "text-gray-600"}`}>{label}</span>
+              <Icon size={24} className={danger ? "text-warm-danger" : "text-ink-2"} strokeWidth={1.6} />
+              <span className={`text-xs font-medium ${danger ? "text-warm-danger" : "text-ink-3"}`}>{label}</span>
             </button>
           ))}
         </div>
 
         {/* Stats */}
-        <div className="flex justify-between mt-2 border-t border-gray-100 pt-4">
+        <div className="bg-paper rounded-2xl px-4 py-4 flex justify-between">
           {[
-            { icon: Eye, label: "צפו במודעה", value: viewCount },
-            { icon: Heart, label: "אהבו את המודעה", value: 0 },
             { icon: Users, label: "הגישו מועמדות", value: applicants.length },
+            { icon: Heart, label: "אהבו את המודעה", value: 0 },
+            { icon: Eye, label: "צפו במודעה", value: viewCount },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex flex-col items-center gap-1">
-              <Icon size={22} className="text-gray-500" strokeWidth={1.6} />
-              <span className="text-base font-bold text-gray-800">{value}</span>
-              <span className="text-[10px] text-gray-400 text-center leading-tight max-w-[70px]">{label}</span>
+              <Icon size={22} className="text-ink-3" strokeWidth={1.6} />
+              <span className="font-serif text-lg font-bold text-ink">{value}</span>
+              <span className="text-[10px] text-ink-3 text-center leading-tight max-w-[70px]">{label}</span>
             </div>
           ))}
         </div>
 
         {/* Applicants */}
-        <div className="mt-3 border border-gray-100 rounded-2xl px-4 py-4 flex flex-col gap-3">
-          <p className="text-sm font-bold text-gray-700 text-right">מועמדים</p>
+        <div className="bg-paper rounded-2xl px-4 py-4 flex flex-col gap-3">
+          <p className="font-serif text-base font-bold text-ink text-right tracking-tight">מועמדים</p>
 
           {/* Pending */}
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-0.5 text-right">
-              <p className="text-xs font-semibold text-orange-500">ממתינים לאישור ({pending.length})</p>
-              <p className="text-[10px] text-gray-400">אחרי 48 שעות המועמד יתבטל אוטומטית עקב חוסר מענה</p>
+              <p className="text-xs font-semibold text-terracotta">ממתינים לאישור ({pending.length})</p>
+              <p className="text-[10px] text-ink-3">אחרי 48 שעות המועמד יתבטל אוטומטית עקב חוסר מענה</p>
             </div>
             {pending.length === 0
-              ? <p className="text-xs text-gray-300 text-right">אין מועמדים בהמתנה</p>
+              ? <p className="text-xs text-ink-3 text-right">אין מועמדים בהמתנה</p>
               : pending.map(a => (
-                <div key={a.id} className="flex items-center justify-between bg-orange-50 rounded-xl px-3 py-2.5">
+                <div key={a.id} className="flex items-center justify-between bg-cream-warm rounded-xl px-3 py-2.5">
                   <button
                     onClick={() => setSelectedApplicant(a)}
-                    className="flex items-center gap-1 text-xs font-bold text-blue-700 active:opacity-70"
+                    className="flex items-center gap-1 text-xs font-bold text-terracotta active:opacity-70"
                   >
                     <ChevronLeft size={14} strokeWidth={2.5} />
                     צפה במועמד
                   </button>
-                  <span className="text-sm font-medium text-gray-800">{a.name}</span>
+                  <span className="text-sm font-medium text-ink">{a.name}</span>
                 </div>
               ))}
           </div>
 
           {/* Approved */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-green-600 text-right">אושרו ({approved.length})</p>
+            <p className="text-xs font-semibold text-warm-success text-right">אושרו ({approved.length})</p>
             {approved.length === 0
-              ? <p className="text-xs text-gray-300 text-right">אין מועמדים שאושרו</p>
+              ? <p className="text-xs text-ink-3 text-right">אין מועמדים שאושרו</p>
               : approved.map(a => (
-                <div key={a.id} className="flex items-center justify-between bg-green-50 rounded-xl px-3 py-2.5">
+                <div key={a.id} className="flex items-center justify-between bg-warm-success-bg rounded-xl px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={async (e) => {
@@ -297,10 +307,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         await supabase.from("applications").update({ status: "archived" }).eq("id", a.id);
                         await loadApplicants();
                       }}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-gray-100"
-                      title="העבר לארכיון"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-cream"
                     >
-                      <Archive size={16} className="text-gray-400" strokeWidth={1.8} />
+                      <Archive size={16} className="text-ink-3" strokeWidth={1.8} />
                     </button>
                     <button
                       onClick={async () => {
@@ -313,13 +322,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         if (conv?.id) router.push(`/messages/${conv.id}`);
                         else router.push("/messages");
                       }}
-                      className="flex items-center gap-1 text-xs font-bold text-green-600 active:opacity-70"
+                      className="flex items-center gap-1 text-xs font-bold text-warm-success active:opacity-70"
                     >
                       <MessageCircle size={13} strokeWidth={2} />
                       פתח צ׳אט
                     </button>
                   </div>
-                  <span className="text-sm font-medium text-gray-800">{a.name}</span>
+                  <span className="text-sm font-medium text-ink">{a.name}</span>
                 </div>
               ))}
           </div>
@@ -332,22 +341,21 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 className="flex items-center justify-between w-full cursor-pointer"
                 style={{ direction: "rtl" }}
               >
-                <p className="text-xs font-semibold text-gray-400">ארכיון מאושרים ({archived.length})</p>
-                <ChevronDown size={14} className={`text-gray-400 transition-transform ${showArchivedApplicants ? "rotate-180" : ""}`} strokeWidth={2} />
+                <p className="text-xs font-semibold text-ink-3">ארכיון מאושרים ({archived.length})</p>
+                <ChevronDown size={14} className={`text-ink-3 transition-transform ${showArchivedApplicants ? "rotate-180" : ""}`} strokeWidth={2} />
               </div>
               {showArchivedApplicants && archived.map(a => (
-                <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5">
+                <div key={a.id} className="flex items-center justify-between bg-cream rounded-xl px-3 py-2.5 ring-1 ring-divider">
                   <button
                     onClick={async () => {
                       await supabase.from("applications").update({ status: "approved" }).eq("id", a.id);
                       await loadApplicants();
                     }}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-gray-100"
-                    title="הוצא מארכיון"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg active:bg-cream-warm"
                   >
-                    <ArchiveRestore size={16} className="text-blue-400" strokeWidth={1.8} />
+                    <ArchiveRestore size={16} className="text-terracotta" strokeWidth={1.8} />
                   </button>
-                  <span className="text-sm font-medium text-gray-500">{a.name}</span>
+                  <span className="text-sm font-medium text-ink-2">{a.name}</span>
                 </div>
               ))}
             </div>
@@ -355,35 +363,22 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* Meta */}
-        <div className="text-right text-sm text-gray-400 mt-1 flex flex-col gap-0.5">
+        <div className="text-right text-xs text-ink-3 mt-1 flex flex-col gap-0.5">
           {createdDate && <p>מועד יצירה: {createdDate}</p>}
           <p>מספר מודעה: {job.id}</p>
         </div>
 
       </main>
 
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 right-0 left-0 z-50 bg-white border-t border-gray-200">
-        <div className="flex items-center justify-around h-16">
-          {[
-            { href: "/", icon: Home, label: "דף הבית" },
-            { href: "/search", icon: Search, label: "חיפוש" },
-            { href: "/post?new=1", icon: PlusCircle, label: "פרסום" },
-            { href: "/saved", icon: Heart, label: "אהבתי" },
-            { href: "/profile", icon: User, label: "אזור אישי" },
-          ].map(({ href, icon: Icon, label }) => (
-            <Link key={href} href={href} className="flex flex-col items-center justify-center flex-1 h-full gap-0.5">
-              <Icon size={24} className="text-gray-400" strokeWidth={1.8} />
-              <span className="text-[10px] font-medium text-gray-400">{label}</span>
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <BottomNav />
 
       {/* Upgrade button */}
-      <div className="fixed bottom-16 right-0 left-0 bg-white border-t border-gray-100 px-4 py-4">
-        <button onClick={() => router.push("/upgrade")} className="w-full h-14 bg-yellow-400 text-white font-black text-xl rounded-2xl active:bg-yellow-500 transition-colors">
-          שדרוג מודעה
+      <div className="fixed bottom-16 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
+        <button
+          onClick={() => router.push("/upgrade")}
+          className="w-full h-14 bg-terracotta text-cream font-serif font-semibold text-lg rounded-2xl active:opacity-90 transition-opacity"
+        >
+          שדרוג מודעה ✦
         </button>
       </div>
 
@@ -392,32 +387,32 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <>
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedApplicant(null)} />
           <div className="fixed inset-0 z-50 flex items-end justify-center">
-            <div className="bg-white rounded-t-3xl w-full px-5 pt-5 pb-10 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-paper rounded-t-3xl w-full px-5 pt-5 pb-10 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-1">
-                <button onClick={() => setSelectedApplicant(null)} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200">
-                  <X size={18} className="text-gray-600" strokeWidth={2} />
+                <button onClick={() => setSelectedApplicant(null)} className="w-9 h-9 flex items-center justify-center rounded-full bg-cream-warm active:bg-cream">
+                  <X size={18} className="text-ink-2" strokeWidth={2} />
                 </button>
-                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className="w-10 h-1 bg-cream-warm rounded-full" />
                 <div className="w-9" />
               </div>
 
               {/* Profile header */}
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 text-2xl font-black text-blue-700 overflow-hidden">
+                <div className="w-14 h-14 rounded-2xl bg-cream-warm flex items-center justify-center shrink-0 font-serif text-2xl font-bold text-terracotta overflow-hidden">
                   {selectedApplicant.avatar_url
                     ? <Image src={selectedApplicant.avatar_url} alt="" width={56} height={56} className="w-full h-full object-cover" />
                     : selectedApplicant.name[0]}
                 </div>
                 <div className="flex-1 text-right">
-                  <p className="text-lg font-black text-gray-900">{selectedApplicant.name}</p>
+                  <p className="font-serif text-lg font-bold text-ink tracking-tight">{selectedApplicant.name}</p>
                   <div className="flex gap-2 justify-end flex-wrap mt-0.5">
                     {selectedApplicant.age && (
-                      <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">גיל {selectedApplicant.age}</span>
+                      <span className="text-xs text-ink-2 bg-cream-warm rounded-full px-2.5 py-1">גיל {selectedApplicant.age}</span>
                     )}
                     {selectedApplicant.gender && (
-                      <span className="text-xs text-gray-500 bg-gray-100 rounded-full px-2.5 py-1">{selectedApplicant.gender}</span>
+                      <span className="text-xs text-ink-2 bg-cream-warm rounded-full px-2.5 py-1">{selectedApplicant.gender}</span>
                     )}
-                    <span className={`text-xs rounded-full px-2.5 py-1 ${selectedApplicant.license ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    <span className={`text-xs rounded-full px-2.5 py-1 ${selectedApplicant.license ? "bg-warm-success-bg text-warm-success" : "bg-cream-warm text-ink-3"}`}>
                       {selectedApplicant.license ? "✓ יש רישיון" : "אין רישיון"}
                     </span>
                   </div>
@@ -427,10 +422,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               {/* Languages */}
               {selectedApplicant.languages.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-xs font-semibold text-gray-500 text-right">שפות</p>
+                  <p className="text-xs font-semibold text-ink-3 text-right">שפות</p>
                   <div className="flex flex-wrap gap-1.5 justify-end">
                     {selectedApplicant.languages.map(l => (
-                      <span key={l} className="text-xs bg-blue-50 text-blue-700 rounded-full px-2.5 py-1 font-medium">{l}</span>
+                      <span key={l} className="text-xs bg-cream-warm text-ink-2 rounded-full px-2.5 py-1 font-medium">{l}</span>
                     ))}
                   </div>
                 </div>
@@ -439,19 +434,19 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               {/* About self */}
               {selectedApplicant.about_self && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-xs font-semibold text-gray-500 text-right">על עצמו</p>
-                  <p className="text-sm text-gray-700 text-right leading-relaxed bg-gray-50 rounded-xl px-3 py-2.5">{selectedApplicant.about_self}</p>
+                  <p className="text-xs font-semibold text-ink-3 text-right">על עצמו</p>
+                  <p className="text-sm text-ink-2 text-right leading-relaxed bg-cream rounded-xl px-3 py-2.5">{selectedApplicant.about_self}</p>
                 </div>
               )}
 
               {/* Answers */}
               {questions.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <p className="text-xs font-semibold text-gray-500 text-right">תשובות לשאלות</p>
+                  <p className="text-xs font-semibold text-ink-3 text-right">תשובות לשאלות</p>
                   {questions.map((q, i) => (
                     <div key={i} className="flex flex-col gap-1">
-                      <p className="text-xs font-bold text-gray-700 text-right">{q}</p>
-                      <p className="text-sm text-gray-600 text-right bg-gray-50 rounded-xl px-3 py-2.5 leading-relaxed">
+                      <p className="text-xs font-bold text-ink text-right">{q}</p>
+                      <p className="text-sm text-ink-2 text-right bg-cream rounded-xl px-3 py-2.5 leading-relaxed">
                         {selectedApplicant.answers[i] || "—"}
                       </p>
                     </div>
@@ -463,13 +458,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => handleReject(selectedApplicant)}
-                  className="flex-1 h-13 rounded-2xl border-2 border-red-400 text-red-500 font-bold text-base active:bg-red-50 py-3"
+                  className="flex-1 h-13 rounded-2xl ring-2 ring-warm-danger text-warm-danger font-serif font-semibold text-base active:bg-warm-danger-bg py-3"
                 >
                   דחה
                 </button>
                 <button
                   onClick={() => handleApprove(selectedApplicant)}
-                  className="flex-1 h-13 rounded-2xl bg-blue-700 text-white font-bold text-base active:bg-blue-800 py-3"
+                  className="flex-1 h-13 rounded-2xl bg-ink text-cream font-serif font-semibold text-base active:opacity-90 py-3"
                 >
                   אשר ופתח צ׳אט
                 </button>
@@ -484,12 +479,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <>
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmFreeze(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-            <div className="bg-white rounded-3xl w-full px-6 py-7 flex flex-col gap-5">
-              <h2 className="text-lg font-bold text-gray-900 text-center">הקפאת מודעה</h2>
-              <p className="text-sm text-gray-500 text-center leading-relaxed">אתה בטוח שתרצה להקפיא פרסום מודעה זו?</p>
+            <div className="bg-paper rounded-3xl w-full px-6 py-7 flex flex-col gap-5">
+              <h2 className="font-serif text-lg font-bold text-ink text-center tracking-tight">הקפאת מודעה</h2>
+              <p className="text-sm text-ink-2 text-center leading-relaxed">אתה בטוח שתרצה להקפיא פרסום מודעה זו?</p>
               <div className="flex gap-3">
-                <button onClick={() => setConfirmFreeze(false)} className="flex-1 h-12 rounded-2xl border border-gray-300 text-gray-700 font-medium">לא</button>
-                <button onClick={handleFreeze} className="flex-1 h-12 rounded-2xl bg-blue-700 text-white font-bold active:bg-blue-800">כן</button>
+                <button onClick={() => setConfirmFreeze(false)} className="flex-1 h-12 rounded-2xl ring-1 ring-divider text-ink-2 font-medium">לא</button>
+                <button onClick={handleFreeze} className="flex-1 h-12 rounded-2xl bg-ink text-cream font-serif font-semibold active:opacity-90">כן</button>
               </div>
             </div>
           </div>
@@ -501,12 +496,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <>
           <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setConfirmRemove(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
-            <div className="bg-white rounded-3xl w-full px-6 py-7 flex flex-col gap-5">
-              <h2 className="text-lg font-bold text-gray-900 text-center">הסרת מודעה</h2>
-              <p className="text-sm text-gray-500 text-center">האם אתה בטוח שברצונך להסיר את המודעה?</p>
+            <div className="bg-paper rounded-3xl w-full px-6 py-7 flex flex-col gap-5">
+              <h2 className="font-serif text-lg font-bold text-ink text-center tracking-tight">הסרת מודעה</h2>
+              <p className="text-sm text-ink-2 text-center">האם אתה בטוח שברצונך להסיר את המודעה?</p>
               <div className="flex gap-3">
-                <button onClick={() => setConfirmRemove(false)} className="flex-1 h-12 rounded-2xl border border-gray-300 text-gray-700 font-medium">ביטול</button>
-                <button onClick={handleRemove} className="flex-1 h-12 rounded-2xl bg-red-500 text-white font-bold active:bg-red-600">כן, הסר</button>
+                <button onClick={() => setConfirmRemove(false)} className="flex-1 h-12 rounded-2xl ring-1 ring-divider text-ink-2 font-medium">ביטול</button>
+                <button onClick={handleRemove} className="flex-1 h-12 rounded-2xl bg-warm-danger text-cream font-serif font-semibold active:opacity-90">כן, הסר</button>
               </div>
             </div>
           </div>
