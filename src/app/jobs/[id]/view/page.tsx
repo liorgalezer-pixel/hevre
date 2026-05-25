@@ -40,68 +40,66 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
 
   useEffect(() => {
     (async () => {
-    // Find user-posted job from Supabase
-    const { data: found } = await supabase
-      .from("jobs")
-      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3")
-      .eq("id", id)
-      .single();
-    if (found) {
-      setUserJob({
-        id: found.id,
-        title: found.title,
-        company: found.company_name || found.company_address || "חברה",
-        salary: found.salary || "",
-        location: (found.job_cities?.length ? found.job_cities.join(", ") : found.company_address) || "",
-        hours: found.start_time && found.end_time ? `${found.start_time}-${found.end_time}` : "",
-        categories: found.categories || [],
-        car: !!found.car,
-        license: !!found.license,
-        housing: !!found.housing,
-        weekend: !!found.weekend,
-        description: found.description || "",
-        requirements: found.requirements || [],
-        questions: [found.q1, found.q2, found.q3].filter(Boolean),
-      });
-    }
-    setJobLoaded(true);
+      // Fetch job and session in parallel
+      const [jobRes, sessionRes] = await Promise.all([
+        supabase.from("jobs")
+          .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3")
+          .eq("id", id).single(),
+        supabase.auth.getSession(),
+      ]);
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    setIsLoggedIn(!!sessionData.session);
+      const found = jobRes.data;
+      if (found) {
+        setUserJob({
+          id: found.id,
+          title: found.title,
+          company: found.company_name || found.company_address || "חברה",
+          salary: found.salary || "",
+          location: (found.job_cities?.length ? found.job_cities.join(", ") : found.company_address) || "",
+          hours: found.start_time && found.end_time ? `${found.start_time}-${found.end_time}` : "",
+          categories: found.categories || [],
+          car: !!found.car,
+          license: !!found.license,
+          housing: !!found.housing,
+          weekend: !!found.weekend,
+          description: found.description || "",
+          requirements: found.requirements || [],
+          questions: [found.q1, found.q2, found.q3].filter(Boolean),
+        });
+      }
+      setJobLoaded(true);
 
-    if (sessionData.session) {
-      const userId = sessionData.session.user.id;
+      const session = sessionRes.data.session;
+      setIsLoggedIn(!!session);
 
-      // Record unique view
-      await supabase.from("job_views").upsert({ job_id: id, viewer_id: userId }, { onConflict: "job_id,viewer_id" });
+      if (session) {
+        const userId = session.user.id;
 
-      const { data: myApp } = await supabase
-        .from("applications")
-        .select("status")
-        .eq("job_id", id)
-        .eq("applicant_id", userId)
-        .single();
-      if (myApp) {
-        setAlreadyApplied(true);
-        setIsApproved(myApp.status === "approved");
-        setIsRejected(myApp.status === "rejected");
-        if (myApp.status === "approved") {
-          const { data: conv } = await supabase
-            .from("conversations")
-            .select("id")
-            .eq("job_id", id)
-            .eq("applicant_id", userId)
-            .single();
-          if (conv?.id) setConversationId(conv.id);
+        // Record view (fire-and-forget) and fetch application in parallel
+        supabase.from("job_views").upsert({ job_id: id, viewer_id: userId }, { onConflict: "job_id,viewer_id" });
+
+        const { data: myApp } = await supabase
+          .from("applications").select("status")
+          .eq("job_id", id).eq("applicant_id", userId).single();
+
+        if (myApp) {
+          setAlreadyApplied(true);
+          setIsApproved(myApp.status === "approved");
+          setIsRejected(myApp.status === "rejected");
+          if (myApp.status === "approved") {
+            const { data: conv } = await supabase
+              .from("conversations").select("id")
+              .eq("job_id", id).eq("applicant_id", userId).single();
+            if (conv?.id) setConversationId(conv.id);
+          }
         }
       }
-    }
-    // Track job view
-    if (job) posthog.capture("job_viewed", {
-      job_id: id,
-      category: job.categories?.[0] ?? null,
-      neighborhood: job.location ?? null,
-    });
+
+      posthog.capture("job_viewed", {
+        job_id: id,
+        category: found?.categories?.[0] ?? null,
+        neighborhood: found?.job_cities?.[0] ?? null,
+      });
     })();
   }, [id]);
 

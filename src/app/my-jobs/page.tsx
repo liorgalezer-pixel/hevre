@@ -79,10 +79,27 @@ export default function MyJobsPage() {
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
         <div className="w-11 h-11" />
         <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
-        <div className="w-20 h-8 bg-cream-warm rounded animate-pulse" />
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
       </header>
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
-        {[1, 2].map(i => <div key={i} className="bg-paper rounded-2xl h-40 animate-pulse" />)}
+        {[1, 2].map(i => (
+          <div key={i} className="bg-paper rounded-2xl p-5 flex flex-col gap-3 animate-pulse">
+            <div className="flex items-start justify-between gap-3" style={{ direction: "ltr" }}>
+              <div className="h-8 w-28 bg-cream-warm rounded-xl" />
+              <div className="w-14 h-14 rounded-xl bg-cream-warm shrink-0" />
+            </div>
+            <div className="h-5 bg-cream-warm rounded-lg w-3/4 self-end" />
+            <div className="h-3 bg-cream-warm rounded-lg w-1/3 self-end" />
+            <div className="flex gap-2 justify-end">
+              <div className="h-7 w-20 bg-cream-warm rounded-lg" />
+              <div className="h-7 w-24 bg-cream-warm rounded-lg" />
+            </div>
+            <div className="h-12 bg-cream-warm rounded-xl" />
+          </div>
+        ))}
       </main>
       <BottomNav />
     </div>

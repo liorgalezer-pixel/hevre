@@ -1,41 +1,47 @@
 "use client";
 
-import { Home, PlusCircle, Heart, User, MessageSquare } from "lucide-react";
+import { Home, PlusCircle, Heart, User, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { usePostLimit } from "@/hooks/usePostLimit";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [showLimitModal, setShowLimitModal] = useState(false);
+  const { showLimitModal, setShowLimitModal, handlePostClick } = usePostLimit();
+  const [hasUnread, setHasUnread] = useState(false);
 
-  const handlePostClick = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/post?new=1"); return; }
-    const { count } = await supabase
-      .from("jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("created_by", user.id);
-    if ((count ?? 0) >= 2) {
-      setShowLimitModal(true);
-    } else {
-      router.push("/post?new=1");
-    }
-  };
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  const leftTabs = [
-    { href: "/", icon: Home, label: "דף הבית", isHeart: false },
-  ];
+      const lastSeen = localStorage.getItem("hevre_messages_last_seen") || new Date(0).toISOString();
 
-  const rightTabs = [
-    { href: "/saved", icon: Heart, label: "אהבתי", isHeart: true },
-    { href: "/profile", icon: User, label: "אזור אישי", isHeart: false },
-  ];
+      const { data: convs } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(`employer_id.eq.${user.id},applicant_id.eq.${user.id}`);
+
+      if (!convs?.length) return;
+
+      const convIds = convs.map((c: { id: string }) => c.id);
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .in("conversation_id", convIds)
+        .neq("sender_id", user.id)
+        .gt("created_at", lastSeen);
+
+      setHasUnread((count ?? 0) > 0);
+    })();
+  }, [pathname]);
 
   const isPostActive = pathname.startsWith("/post");
+  const isMessagesActive = pathname.startsWith("/messages");
 
   const renderTab = ({ href, icon: Icon, label, isHeart }: { href: string; icon: React.ElementType; label: string; isHeart: boolean }) => {
     const active = pathname === href;
@@ -51,7 +57,19 @@ export default function BottomNav() {
     <>
       <nav className="fixed bottom-0 right-0 left-0 z-50 bg-paper border-t border-divider safe-area-inset-bottom">
         <div className="flex items-center justify-around h-16">
-          {leftTabs.map(renderTab)}
+          {renderTab({ href: "/", icon: Home, label: "דף הבית", isHeart: false })}
+
+          {/* Messages with unread badge */}
+          <button
+            onClick={() => { setHasUnread(false); router.push("/messages"); }}
+            className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 min-w-[44px] relative"
+          >
+            <div className="relative">
+              <MessageCircle size={24} className={isMessagesActive ? "text-terracotta" : "text-ink-3"} strokeWidth={isMessagesActive ? 2.4 : 1.8} />
+              {hasUnread && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-terracotta rounded-full ring-2 ring-paper" />}
+            </div>
+            <span className={`text-[10px] font-medium ${isMessagesActive ? "text-terracotta" : "text-ink-3"}`}>הודעות</span>
+          </button>
 
           {/* Post button */}
           <button onClick={handlePostClick} className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 min-w-[44px]">
@@ -59,7 +77,8 @@ export default function BottomNav() {
             <span className={`text-[10px] font-medium ${isPostActive ? "text-terracotta" : "text-ink-3"}`}>פרסום</span>
           </button>
 
-          {rightTabs.map(renderTab)}
+          {renderTab({ href: "/saved", icon: Heart, label: "אהבתי", isHeart: true })}
+          {renderTab({ href: "/profile", icon: User, label: "אזור אישי", isHeart: false })}
         </div>
       </nav>
 

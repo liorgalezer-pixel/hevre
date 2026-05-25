@@ -54,6 +54,7 @@ export default function MessagesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setIsLoggedIn(false); setLoaded(true); return; }
       setIsLoggedIn(true);
+      localStorage.setItem("hevre_messages_last_seen", new Date().toISOString());
 
       const { data: convs } = await supabase
         .from("conversations")

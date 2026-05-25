@@ -33,11 +33,23 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
       setMyId(user.id);
+      localStorage.setItem("hevre_messages_last_seen", new Date().toISOString());
 
-      const { data: myProfile } = await supabase
-        .from("profiles").select("first_name, phone").eq("id", user.id).single();
+      // Fire cleanup in background (non-critical)
+      const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+      supabase.from("messages").delete().eq("conversation_id", conversationId).lt("created_at", cutoff);
 
-      // Use profile first_name, fallback to Google display name, then email prefix
+      // Fetch profile, conversation data, and messages in parallel
+      const [profileRes, convRes, msgsRes] = await Promise.all([
+        supabase.from("profiles").select("first_name, phone").eq("id", user.id).single(),
+        supabase.from("conversations")
+          .select("employer_id, applicant_id, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name)")
+          .eq("id", conversationId).single(),
+        supabase.from("messages").select("id, sender_id, content, created_at")
+          .eq("conversation_id", conversationId).order("created_at", { ascending: true }),
+      ]);
+
+      const myProfile = profileRes.data;
       const googleName = (user.user_metadata?.full_name as string || user.user_metadata?.name as string || "").split(" ")[0];
       const firstName = myProfile?.first_name || googleName || user.email?.split("@")[0] || "";
       setMyFirstName(firstName);
@@ -49,27 +61,16 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         else { setWaPhone(raw); }
       }
 
-      const { data: convData } = await supabase
-        .from("conversations")
-        .select("employer_id, applicant_id, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name)")
-        .eq("id", conversationId).single();
-
-      if (convData) {
+      if (convRes.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const c = convData as any;
+        const c = convRes.data as any;
         setJobTitle(c.jobs?.title || "משרה");
         const emp = c.employer_id === user.id;
         setIsEmployer(emp);
         setOtherName(emp ? (c.applicant?.first_name || "מועמד") : (c.employer?.first_name || "מעסיק"));
       }
 
-      const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
-      await supabase.from("messages").delete().eq("conversation_id", conversationId).lt("created_at", cutoff);
-
-      const { data: msgs } = await supabase
-        .from("messages").select("id, sender_id, content, created_at")
-        .eq("conversation_id", conversationId).order("created_at", { ascending: true });
-      setMessages(msgs || []);
+      setMessages(msgsRes.data || []);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);

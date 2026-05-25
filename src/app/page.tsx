@@ -74,6 +74,8 @@ export default function HomePage() {
   const [dbPage, setDbPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState(false);
   const PAGE_SIZE = 20;
 
   // Drawer state
@@ -187,7 +189,7 @@ export default function HomePage() {
   const fetchJobs = async (page: number, reset: boolean) => {
     if (reset) setLoadingMore(false);
     else setLoadingMore(true);
-    const { data } = await supabase.from("jobs")
+    const { data, error } = await supabase.from("jobs")
       .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at")
       .eq("active", true)
       .eq("frozen", false)
@@ -210,10 +212,12 @@ export default function HomePage() {
       questions: [j.q1, j.q2, j.q3].filter(Boolean),
       created_at: j.created_at,
     }));
+    if (error) { setJobsError(true); setJobsLoading(false); return; }
     setUserJobs(prev => reset ? postedJobs : [...prev, ...postedJobs]);
     setHasMore((data || []).length === PAGE_SIZE);
     setDbPage(page);
     setLoadingMore(false);
+    setJobsLoading(false);
   };
 
   const clearFilters = () => {
@@ -473,14 +477,48 @@ export default function HomePage() {
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-3 mt-1.5">{filtered.length} משרות פתוחות</p>
         </div>
 
-        {filtered.length === 0 && (
+        {jobsError && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <span className="text-4xl">⚠️</span>
+            <p className="text-ink-2 text-sm text-center">לא ניתן לטעון משרות כרגע</p>
+            <button
+              onClick={() => { setJobsError(false); setJobsLoading(true); fetchJobs(0, true); }}
+              className="h-11 px-6 bg-ink text-cream font-serif font-semibold text-sm rounded-2xl active:opacity-90"
+            >
+              נסה שוב
+            </button>
+          </div>
+        )}
+
+        {jobsLoading && !jobsError && (
+          <>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-paper rounded-2xl p-4 ring-1 ring-divider flex flex-col gap-3 animate-pulse">
+                <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
+                  <div className="w-9 h-9 rounded-full bg-cream-warm shrink-0" />
+                  <div className="flex-1 flex flex-col gap-2">
+                    <div className="h-4 bg-cream-warm rounded-lg w-2/3" />
+                    <div className="h-3 bg-cream-warm rounded-lg w-1/3" />
+                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-cream-warm shrink-0" />
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-6 bg-cream-warm rounded-full w-20" />
+                  <div className="h-6 bg-cream-warm rounded-full w-24" />
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {!jobsLoading && !jobsError && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <span className="text-4xl">🔍</span>
             <p className="text-ink-3 text-sm">אין משרות בקטגוריה זו כרגע</p>
           </div>
         )}
 
-        {filtered.map((job) => {
+        {!jobsLoading && !jobsError && filtered.map((job) => {
           const isSaved = savedIds.includes(job.id);
           const isApplied = appliedJobIds.has(job.id);
           return (

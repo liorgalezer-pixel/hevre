@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import BottomNav from "@/components/BottomNav";
+import { usePostLimit } from "@/hooks/usePostLimit";
 
 const accountItems: { icon: React.ElementType; label: string; bold: boolean; href: string; todo?: boolean }[] = [
   { icon: Monitor, label: "המודעות שלי", bold: false, href: "/my-jobs" },
@@ -23,22 +24,8 @@ export default function ProfilePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [showLimitModal, setShowLimitModal] = useState(false);
+  const { showLimitModal, setShowLimitModal, handlePostClick } = usePostLimit();
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  const handlePostClick = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/post?new=1"); return; }
-    const { count } = await supabase
-      .from("jobs")
-      .select("id", { count: "exact", head: true })
-      .eq("created_by", user.id);
-    if ((count ?? 0) >= 2) {
-      setShowLimitModal(true);
-    } else {
-      router.push("/post?new=1");
-    }
-  };
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
