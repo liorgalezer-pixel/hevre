@@ -3,6 +3,7 @@
 import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, Share2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useMemo } from "react";
+
 import { Drawer } from "vaul";
 import BottomNav from "@/components/BottomNav";
 import { CATEGORIES } from "@/lib/categories";
@@ -77,6 +78,7 @@ export default function HomePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState(false);
+  const [totalJobCount, setTotalJobCount] = useState<number | null>(null);
   const PAGE_SIZE = 20;
 
   // Drawer state
@@ -188,8 +190,11 @@ export default function HomePage() {
   }, []);
 
   const fetchJobs = async (page: number, reset: boolean) => {
-    if (reset) setLoadingMore(false);
-    else setLoadingMore(true);
+    if (reset) {
+      setLoadingMore(false);
+      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("active", true).eq("frozen", false)
+        .then(({ count }) => { if (count !== null) setTotalJobCount(count); });
+    } else setLoadingMore(true);
     const { data, error } = await supabase.from("jobs")
       .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at")
       .eq("active", true)
@@ -221,6 +226,23 @@ export default function HomePage() {
     setLoadingMore(false);
     setJobsLoading(false);
   };
+
+
+  useEffect(() => {
+    if (!hasMore || jobsLoading || searchText || activeCategory || filters) return;
+    let called = false;
+    const tryLoad = () => {
+      if (called) return;
+      const el = document.documentElement;
+      const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 500;
+      if (!atBottom) return;
+      called = true;
+      fetchJobs(dbPage + 1, false);
+    };
+    document.addEventListener("scroll", tryLoad, { passive: true });
+    return () => document.removeEventListener("scroll", tryLoad);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userJobs.length, hasMore, jobsLoading, searchText, activeCategory, filters]);
 
   const clearFilters = () => {
     localStorage.removeItem(STORAGE_KEYS.FILTERS);
@@ -477,7 +499,7 @@ export default function HomePage() {
           <h1 className="font-serif text-2xl font-bold text-ink tracking-tight">
             {activeCategory ? CATEGORIES.find(c => c.id === activeCategory)?.label : 'משרות ארה"ב'}
           </h1>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-3 mt-1.5">{filtered.length} משרות פתוחות</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-3 mt-1.5">{totalJobCount ?? filtered.length} משרות פתוחות</p>
         </div>
 
         {jobsError && (
@@ -586,17 +608,10 @@ export default function HomePage() {
           );
         })}
 
-        {/* Load more */}
-        {hasMore && !searchText && !activeCategory && !filters && (
-          <button
-            onClick={() => fetchJobs(dbPage + 1, false)}
-            disabled={loadingMore}
-            className="w-full h-12 ring-1 ring-divider rounded-2xl text-sm font-semibold text-ink-2 active:bg-cream-warm flex items-center justify-center gap-2"
-          >
-            {loadingMore ? (
-              <span className="w-5 h-5 border-2 border-divider border-t-terracotta rounded-full animate-spin" />
-            ) : "טען עוד משרות"}
-          </button>
+        {loadingMore && (
+          <div className="flex items-center justify-center py-6">
+            <span className="w-6 h-6 border-2 border-divider border-t-terracotta rounded-full animate-spin" />
+          </div>
         )}
       </main>
 
