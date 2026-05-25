@@ -208,7 +208,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
 
           <div className="flex flex-col gap-1">
             <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שכר שבועי ממוצע</label>
-            <input type="text" value={salary} onChange={e => setSalary(e.target.value)} placeholder="למשל: $18/שעה" dir="rtl"
+            <input type="text" inputMode="numeric" value={salary} onChange={e => setSalary(e.target.value)} placeholder="למשל: $18/שעה" dir="rtl"
               className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-right text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta" />
           </div>
 

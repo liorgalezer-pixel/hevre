@@ -39,6 +39,7 @@ export default function RegisterAboutPage() {
         <div className={`h-14 bg-paper ring-1 rounded-2xl flex items-center px-4 focus-within:ring-terracotta transition-colors ${age && !ageValid ? "ring-warm-danger" : "ring-divider"}`}>
           <input
             type="number"
+            inputMode="numeric"
             value={age}
             onChange={(e) => setAge(e.target.value)}
             placeholder="25"
