@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe, STRIPE_PRICES, SubscriptionPlan } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: NextRequest) {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   const { plan, userId } = await req.json() as {
     plan: SubscriptionPlan;
     userId: string;
