@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
-import { User, ChevronLeft } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function RegisterDetailsPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -21,74 +21,69 @@ export default function RegisterDetailsPage() {
       }
     });
   }, []);
-  const router = useRouter();
 
   const isValid = firstName.trim().length > 0 && lastName.trim().length > 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white px-6 pt-14" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream px-5 pt-14 pb-10" dir="rtl">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center text-gray-700">
-          <ChevronLeft size={28} strokeWidth={2} />
+      <div className="flex items-center justify-between mb-10">
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <Image src="/hevre-logo.png" alt="Hevre" width={56} height={56} className="object-contain rounded-xl" />
-        <div className="w-11" />
       </div>
 
       {/* Title */}
-      <h1 className="text-3xl font-black text-gray-900 text-center mb-10">
-        הצטרף ל-HEVRE
-      </h1>
+      <h1 className="font-serif text-2xl font-bold text-ink tracking-tight text-right mb-8">הצטרף ל-Hevre</h1>
 
       {/* Form */}
       <div className="flex flex-col gap-5 flex-1">
 
         {/* First name */}
-        <div>
-          <label className="text-sm font-semibold text-gray-800 block text-right mb-1.5">
-            שם פרטי*
-          </label>
-          <div className="border border-gray-300 rounded-xl h-14 flex items-center px-4 gap-3 bg-white">
-            <User size={20} strokeWidth={1.6} className="text-gray-300" />
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שם פרטי</label>
+          <div className="h-14 bg-paper ring-1 ring-divider rounded-2xl flex items-center px-4 focus-within:ring-terracotta transition-colors">
             <input
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="flex-1 text-right text-base outline-none bg-transparent text-gray-800 placeholder:text-gray-300"
+              placeholder="ישראל"
+              className="flex-1 text-right text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
             />
           </div>
         </div>
 
         {/* Last name */}
-        <div>
-          <label className="text-sm font-semibold text-gray-800 block text-right mb-1.5">
-            שם משפחה*
-          </label>
-          <div className="border border-gray-300 rounded-xl h-14 flex items-center px-4 gap-3 bg-white">
-            <User size={20} strokeWidth={1.6} className="text-gray-300" />
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שם משפחה</label>
+          <div className="h-14 bg-paper ring-1 ring-divider rounded-2xl flex items-center px-4 focus-within:ring-terracotta transition-colors">
             <input
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="flex-1 text-right text-base outline-none bg-transparent text-gray-800 placeholder:text-gray-300"
+              placeholder="ישראלי"
+              className="flex-1 text-right text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
             />
           </div>
         </div>
       </div>
 
       {/* Continue button */}
-      <div className="pb-10 pt-6">
+      <div className="pt-6">
         <button
           disabled={!isValid}
           onClick={() => {
-          if (!isValid) return;
-          localStorage.setItem("reg_first_name", firstName);
-          localStorage.setItem("reg_last_name", lastName);
-          router.push("/register/about");
-        }}
-          className={`w-full font-bold text-lg rounded-full h-14 transition-colors text-white ${isValid ? "bg-blue-700 active:bg-blue-800" : "bg-gray-300"}`}
+            if (!isValid) return;
+            localStorage.setItem("reg_first_name", firstName);
+            localStorage.setItem("reg_last_name", lastName);
+            router.push("/register/about");
+          }}
+          className={`w-full h-14 font-serif font-semibold text-base rounded-2xl transition-opacity text-cream ${isValid ? "bg-terracotta active:opacity-90" : "bg-ink-3 opacity-40"}`}
         >
           המשך
         </button>

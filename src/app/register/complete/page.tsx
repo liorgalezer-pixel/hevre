@@ -27,10 +27,11 @@ export default function RegisterCompletePage() {
   const [country, setCountry] = useState('ארה"ב');
   const [usState, setUsState] = useState("");
   const [ilLicense, setIlLicense] = useState(false);
-  const [licenseCity, setLicenseCity] = useState("");
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
+  const [langModalOpen, setLangModalOpen] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const initializedRef = useRef(false);
 
-  // Restore all form fields on mount (survives navigation away and back)
   useEffect(() => {
     const draft = sessionStorage.getItem("reg_complete_draft");
     if (draft) {
@@ -45,11 +46,9 @@ export default function RegisterCompletePage() {
         if (d.country) setCountry(d.country);
         if (d.usState) setUsState(d.usState);
         if (typeof d.ilLicense === "boolean") setIlLicense(d.ilLicense);
-        if (d.licenseCity) setLicenseCity(d.licenseCity);
         if (d.selectedLangs) setSelectedLangs(d.selectedLangs);
       } catch {}
     } else {
-      // No draft — load from previous registration steps
       setFirstName(localStorage.getItem("reg_first_name") || "");
       setLastName(localStorage.getItem("reg_last_name") || "");
     }
@@ -64,17 +63,13 @@ export default function RegisterCompletePage() {
     }
     initializedRef.current = true;
   }, []);
-  const [langModalOpen, setLangModalOpen] = useState(false);
-  const [attempted, setAttempted] = useState(false);
-  const initializedRef = useRef(false);
 
-  // Save draft on every change — only after initial restore is done
   useEffect(() => {
     if (!initializedRef.current) return;
     sessionStorage.setItem("reg_complete_draft", JSON.stringify({
-      firstName, lastName, phone, phoneCountry, birthDate, city, country, usState, ilLicense, licenseCity, selectedLangs,
+      firstName, lastName, phone, phoneCountry, birthDate, city, country, usState, ilLicense, selectedLangs,
     }));
-  }, [firstName, lastName, phone, phoneCountry, birthDate, city, country, usState, ilLicense, licenseCity, selectedLangs]);
+  }, [firstName, lastName, phone, phoneCountry, birthDate, city, country, usState, ilLicense, selectedLangs]);
 
   const isInUSA = country === 'ארה"ב';
 
@@ -102,12 +97,10 @@ export default function RegisterCompletePage() {
 
     let userId: string;
 
-    // Check if already logged in (e.g. via Google OAuth)
     const { data: { user: existingUser } } = await supabase.auth.getUser();
     if (existingUser) {
       userId = existingUser.id;
     } else {
-      // Email/password registration flow
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: storedEmail,
         password: storedPassword,
@@ -144,7 +137,6 @@ export default function RegisterCompletePage() {
       }
     }
 
-    // upsert כדי לא לכשול אם הפרופיל כבר קיים
     const { error: profileError } = await supabase.from("profiles").upsert({
       id: userId,
       email: storedEmail,
@@ -178,109 +170,132 @@ export default function RegisterCompletePage() {
     );
   };
 
-
+  const fieldClass = (hasErr: boolean) =>
+    `h-14 bg-paper ring-1 rounded-2xl flex items-center px-4 focus-within:ring-terracotta transition-colors ${hasErr ? "ring-warm-danger" : "ring-divider"}`;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream px-5 pt-14 pb-10" dir="rtl">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-12 pb-4 border-b border-gray-100">
-        <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600">
-          <ChevronRight size={20} strokeWidth={2} />
+      <div className="flex items-center justify-between mb-10">
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">המשך פרטים אישיים</h1>
-        <button onClick={() => router.push("/")} className="text-sm text-gray-400 font-medium">Cancel</button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 pb-32">
+      {/* Title */}
+      <div className="mb-8 text-right">
+        <h1 className="font-serif text-2xl font-bold text-ink tracking-tight">עוד כמה פרטים</h1>
+        <p className="text-sm text-ink-2 mt-1">כמעט סיימנו — מלא את הפרטים האחרונים</p>
+      </div>
 
-        {/* Personal fields */}
-        <div className="flex flex-col gap-3 mb-6">
-          {[
-            { label: "שם פרטי", value: firstName, setter: setFirstName, placeholder: "אבי", type: "text", err: errors.firstName },
-            { label: "שם משפחה", value: lastName, setter: setLastName, placeholder: "כהן", type: "text", err: errors.lastName },
-          ].map(({ label, value, setter, placeholder, type, err }) => (
-            <div key={label}>
-              <label className={`text-sm font-medium block text-right mb-1 ${attempted && err ? "text-red-500" : "text-gray-600"}`}>
-                {label} {attempted && err && <span className="text-red-400 text-xs">— שדה חובה</span>}
-              </label>
-              <input
-                type={type}
-                value={value}
-                placeholder={placeholder}
-                onChange={(e) => setter(e.target.value)}
-                dir="rtl"
-                className={`w-full border rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 ${
-                  attempted && err ? "border-red-400 bg-red-50" : "border-gray-300"
-                }`}
-              />
-            </div>
-          ))}
+      <div className="flex flex-col gap-5">
 
-          {/* Phone with country code */}
-          <div>
-            <label className={`text-sm font-medium block text-right mb-1 ${attempted && errors.phone ? "text-red-500" : "text-gray-600"}`}>
-              טלפון נייד {attempted && errors.phone && <span className="text-red-400 text-xs">— שדה חובה</span>}
-            </label>
-            <div className="flex gap-2 items-center" style={{ direction: "ltr" }}>
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setPhoneDropOpen((v) => !v)}
-                  className="flex items-center gap-1.5 border border-gray-300 rounded-xl h-11 px-3 bg-white text-sm font-bold text-gray-700"
-                >
-                  {phoneCountry}
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-                {phoneDropOpen && (
-                  <>
-                    <div className="fixed inset-0 z-30" onClick={() => setPhoneDropOpen(false)} />
-                    <div className="absolute top-12 left-0 z-40 bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden min-w-[120px]">
-                      {([{ code: "+1", label: "🇺🇸 ארה״ב" }, { code: "+972", label: "🇮🇱 ישראל" }] as const).map(({ code, label }) => (
-                        <button
-                          key={code}
-                          type="button"
-                          onClick={() => { setPhoneCountry(code); setPhone(""); setPhoneDropOpen(false); }}
-                          className={`w-full flex items-center gap-2 px-4 py-3 text-sm text-right hover:bg-gray-50 ${phoneCountry === code ? "text-blue-700 font-bold" : "text-gray-700"}`}
-                        >
-                          <span>{label}</span>
-                          <span className="font-bold mr-auto">{code}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-              <input
-                type="tel"
-                value={phone}
-                maxLength={phoneCountry === "+1" ? 10 : 10}
-                placeholder={phoneCountry === "+1" ? "2125551234" : "0501234567"}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                style={{ direction: "ltr" }}
-                className={`flex-1 border rounded-xl h-11 px-3 text-left text-sm outline-none bg-white placeholder:text-gray-300 ${
-                  attempted && errors.phone ? "border-red-400 bg-red-50" : "border-gray-300"
-                }`}
-              />
-            </div>
+        {/* First name */}
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">
+            שם פרטי {attempted && errors.firstName && <span className="text-warm-danger normal-case">— שדה חובה</span>}
+          </label>
+          <div className={fieldClass(attempted && errors.firstName)}>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="ישראל"
+              className="flex-1 text-right text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
+            />
           </div>
+        </div>
 
-          <div>
-            <label className="text-sm text-gray-600 font-medium block text-right mb-1">אימייל</label>
+        {/* Last name */}
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">
+            שם משפחה {attempted && errors.lastName && <span className="text-warm-danger normal-case">— שדה חובה</span>}
+          </label>
+          <div className={fieldClass(attempted && errors.lastName)}>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="ישראלי"
+              className="flex-1 text-right text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
+            />
+          </div>
+        </div>
+
+        {/* Phone */}
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">
+            טלפון נייד {attempted && errors.phone && <span className="text-warm-danger normal-case">— שדה חובה</span>}
+          </label>
+          <div className={`${fieldClass(attempted && errors.phone)} gap-2`} style={{ direction: "ltr" }}>
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setPhoneDropOpen((v) => !v)}
+                className="flex items-center gap-1 text-sm font-bold text-ink"
+              >
+                {phoneCountry}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              {phoneDropOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setPhoneDropOpen(false)} />
+                  <div className="absolute top-8 left-0 z-40 bg-paper ring-1 ring-divider rounded-2xl shadow-lg overflow-hidden min-w-[140px]">
+                    {([{ code: "+1", label: "🇺🇸 ארה״ב" }, { code: "+972", label: "🇮🇱 ישראל" }] as const).map(({ code, label }) => (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => { setPhoneCountry(code); setPhone(""); setPhoneDropOpen(false); }}
+                        className={`w-full flex items-center gap-2 px-4 py-3 text-sm ${phoneCountry === code ? "text-terracotta font-bold" : "text-ink"}`}
+                        dir="rtl"
+                      >
+                        <span>{label}</span>
+                        <span className="font-bold mr-auto">{code}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="w-px h-6 bg-divider shrink-0" />
+            <input
+              type="tel"
+              value={phone}
+              maxLength={10}
+              placeholder={phoneCountry === "+1" ? "2125551234" : "0501234567"}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              style={{ direction: "ltr" }}
+              className="flex-1 text-left text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
+            />
+          </div>
+        </div>
+
+        {/* Email */}
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">אימייל</label>
+          <div className={fieldClass(false)}>
             <input
               type="email"
               value={email}
-              placeholder="avi@email.com"
               onChange={(e) => setEmail(e.target.value)}
-              dir="rtl"
-              className="w-full border border-gray-300 rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300"
+              placeholder="avi@email.com"
+              style={{ direction: "ltr" }}
+              className="flex-1 text-left text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
             />
           </div>
+        </div>
 
-          <div>
-            <label className={`text-sm font-medium block text-right mb-1 ${attempted && errors.birthDate ? "text-red-500" : "text-gray-600"}`}>
-              תאריך לידה {attempted && errors.birthDate && <span className="text-red-400 text-xs">— שדה חובה</span>}
-            </label>
+        {/* Birth date */}
+        <div className="flex flex-col gap-1.5">
+          <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">
+            תאריך לידה {attempted && errors.birthDate && <span className="text-warm-danger normal-case">— שדה חובה</span>}
+          </label>
+          <div className={fieldClass(attempted && errors.birthDate)}>
             <input
               type="text"
               value={birthDate}
@@ -294,60 +309,53 @@ export default function RegisterCompletePage() {
                 else if (digits.length > 2) formatted = digits.slice(0, 2) + "/" + digits.slice(2);
                 setBirthDate(formatted);
               }}
-              className={`w-full border rounded-xl h-11 px-3 text-right text-sm outline-none bg-white placeholder:text-gray-300 ${
-                attempted && errors.birthDate ? "border-red-400 bg-red-50" : "border-gray-300"
-              }`}
+              className="flex-1 text-right text-base outline-none bg-transparent text-ink placeholder:text-ink-3"
             />
-          </div>
-
-          {/* Location Picker */}
-          <div className={attempted && errors.location ? "rounded-2xl border border-red-400 bg-red-50 p-3" : ""}>
-            {attempted && errors.location && (
-              <p className="text-red-500 text-xs text-right mb-2">יש לבחור מדינה ועיר</p>
-            )}
-            <UserLocationPicker
-              country={country}
-              setCountry={setCountry}
-              usState={usState}
-              setUsState={setUsState}
-              city={city}
-              setCity={setCity}
-            />
-          </div>
-
-          {/* License toggle */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600 font-medium flex-1 text-right">רישיון נהיגה ישראלי / אמריקאי</span>
-            <button
-              type="button"
-              onClick={() => setIlLicense(!ilLicense)}
-              className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${ilLicense ? "bg-blue-600" : "bg-gray-300"}`}
-            >
-              <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${ilLicense ? "right-0.5" : "left-0.5"}`} />
-            </button>
           </div>
         </div>
 
-        {/* Languages */}
-        <div className="mb-8">
-          <h2 className="text-lg font-bold text-gray-900 text-right mb-1">באילו שפות אתה מדבר?</h2>
-          <p className="text-sm text-gray-400 text-right mb-4">שפות שאתה מדבר ברמה טובה</p>
+        {/* Location */}
+        <div className={`flex flex-col gap-1.5 ${attempted && errors.location ? "p-3 ring-1 ring-warm-danger rounded-2xl bg-paper" : ""}`}>
+          {attempted && errors.location && (
+            <p className="text-warm-danger text-xs text-right">יש לבחור מדינה ועיר</p>
+          )}
+          <UserLocationPicker
+            country={country}
+            setCountry={setCountry}
+            usState={usState}
+            setUsState={setUsState}
+            city={city}
+            setCity={setCity}
+          />
+        </div>
 
-          <div className="flex flex-wrap gap-2 justify-start mb-3" dir="rtl">
+        {/* License toggle */}
+        <div className="flex items-center gap-3 py-1">
+          <span className="text-base text-ink flex-1 text-right">רישיון נהיגה ישראלי / אמריקאי</span>
+          <button
+            type="button"
+            onClick={() => setIlLicense(!ilLicense)}
+            className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${ilLicense ? "bg-terracotta" : "bg-divider"}`}
+          >
+            <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-all ${ilLicense ? "right-0.5" : "left-0.5"}`} />
+          </button>
+        </div>
+
+        {/* Languages */}
+        <div className="flex flex-col gap-3">
+          <div className="text-right">
+            <h2 className="font-serif text-lg font-bold text-ink">באילו שפות אתה מדבר?</h2>
+            <p className="text-sm text-ink-2 mt-0.5">שפות שאתה מדבר ברמה טובה</p>
+          </div>
+          <div className="flex flex-wrap gap-2 justify-start" dir="rtl">
             {defaultLanguages.map((lang) => (
               <button
                 key={lang}
-                onClick={() => {
-                  if (lang === "אחר") {
-                    setLangModalOpen(true);
-                  } else {
-                    toggleLang(lang);
-                  }
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                onClick={() => lang === "אחר" ? setLangModalOpen(true) : toggleLang(lang)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedLangs.includes(lang)
-                    ? "bg-gray-700 text-white border-gray-700"
-                    : "bg-white text-gray-700 border-gray-300"
+                    ? "bg-terracotta text-cream"
+                    : "bg-paper ring-1 ring-divider text-ink"
                 }`}
               >
                 {lang}
@@ -357,42 +365,40 @@ export default function RegisterCompletePage() {
               <button
                 key={lang}
                 onClick={() => toggleLang(lang)}
-                className="px-4 py-2 rounded-full text-sm font-medium bg-gray-700 text-white border border-gray-700 flex items-center gap-1"
+                className="px-4 py-2 rounded-full text-sm font-medium bg-terracotta text-cream flex items-center gap-1"
               >
                 {lang}
                 <X size={12} />
               </button>
             ))}
           </div>
-
-          {langModalOpen && (
-            <LanguageSearchModal
-              selected={selectedLangs}
-              onAdd={(lang) => setSelectedLangs(prev => [...prev, lang])}
-              onClose={() => setLangModalOpen(false)}
-            />
-          )}
         </div>
 
+        {langModalOpen && (
+          <LanguageSearchModal
+            selected={selectedLangs}
+            onAdd={(lang) => setSelectedLangs(prev => [...prev, lang])}
+            onClose={() => setLangModalOpen(false)}
+          />
+        )}
+
         {/* Disclaimer */}
-        <p className="text-xs text-gray-500 text-center mb-5">
-          על ידי לחיצה, אתה מאשר את הפרטים ואת{" "}
-          <Link href="/terms" className="text-blue-600 underline">התקנון</Link>
+        <p className="text-xs text-ink-3 text-center">
+          על ידי לחיצה, אתה מאשר את{" "}
+          <Link href="/terms" className="text-terracotta underline">התקנון</Link>
           {" "}ומסיים את ההרשמה.
         </p>
 
         {attempted && hasErrors && (
-          <p className="text-red-500 text-sm text-center mb-3 font-medium">יש למלא את כל השדות המסומנים</p>
+          <p className="text-warm-danger text-sm text-center font-medium">יש למלא את כל השדות המסומנים</p>
         )}
-        {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+        {error && <p className="text-warm-danger text-sm text-center">{error}</p>}
 
-        {/* Submit button */}
+        {/* Submit */}
         <button
           onClick={handleComplete}
           disabled={loading}
-          className={`w-full font-bold text-lg rounded-full h-14 transition-colors text-white ${
-            loading ? "bg-gray-300" : "bg-yellow-400 active:bg-yellow-500"
-          }`}
+          className={`w-full h-14 font-serif font-semibold text-base rounded-2xl transition-opacity text-cream ${loading ? "bg-ink-3 opacity-40" : "bg-terracotta active:opacity-90"}`}
         >
           {loading ? "שומר..." : "כניסה וסיום"}
         </button>
