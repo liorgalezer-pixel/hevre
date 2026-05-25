@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { X, CheckCircle2 } from "lucide-react";
+import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import posthog from "posthog-js";
+import { supabase } from "@/lib/supabase";
 
 const PLANS = [
   {
@@ -22,7 +22,7 @@ const PLANS = [
       "וי כחול ואימות עסק",
       "פרסום משרות ללא הגבלה",
     ],
-    cta: "שדרג ל-Pro",
+    cta: "שדרג ל-Pro — $15/חודש",
   },
   {
     id: "plus",
@@ -38,45 +38,39 @@ const PLANS = [
       "תמיכה VIP",
     ],
     notIncluded: [],
-    cta: "שדרג ל-Hevre+",
+    cta: "שדרג ל-Hevre+ — $29.99/חודש",
   },
 ];
 
 export default function HevrePlusPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
-  const [purchased, setPurchased] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (!selected) return;
-    posthog.capture("premium_click", { feature_type: selected });
-    setPurchased(true);
-  };
+    setLoading(true);
+    setError("");
 
-  if (purchased) {
-    const plan = PLANS.find((p) => p.id === selected)!;
-    return (
-      <div className="flex flex-col min-h-screen bg-cream items-center justify-center px-6 gap-6" dir="rtl">
-        <div className="w-24 h-24 rounded-full bg-warm-success-bg flex items-center justify-center">
-          <CheckCircle2 size={52} className="text-warm-success" strokeWidth={1.5} />
-        </div>
-        <div className="text-center flex flex-col gap-2">
-          <h2 className="font-serif text-2xl font-bold text-ink tracking-tight">ברוך הבא ל-{plan.name}!</h2>
-          <p className="text-sm text-ink-2 leading-relaxed">
-            {plan.id === "plus"
-              ? "יש לך עכשיו פרסום ללא הגבלה + וי כחול בכל המשרות שלך"
-              : "יש לך עכשיו גישה לפרסום עד 5 משרות בו-זמנית"}
-          </p>
-        </div>
-        <button
-          onClick={() => router.push("/my-jobs")}
-          className="w-full h-14 bg-ink text-cream font-serif font-semibold text-base rounded-2xl active:opacity-90"
-        >
-          חזרה למשרות שלי
-        </button>
-      </div>
-    );
-  }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    const res = await fetch("/api/stripe/create-subscription-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: selected, userId: user.id }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      setError("שגיאה ביצירת תשלום — נסה שוב");
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = data.url;
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
@@ -93,7 +87,6 @@ export default function HevrePlusPage() {
       </header>
 
       <main className="flex-1 px-4 pt-6 pb-32 flex flex-col gap-4">
-
         <div className="text-center flex flex-col gap-1 mb-2">
           <h2 className="font-serif text-2xl font-bold text-ink tracking-tight">בחר את המסלול שלך ✦</h2>
           <p className="text-sm text-ink-3">פרסם יותר, הגע ליותר מועמדים</p>
@@ -109,7 +102,6 @@ export default function HevrePlusPage() {
                 isSelected ? "ring-terracotta shadow-lg" : "ring-divider"
               }`}
             >
-              {/* Header strip */}
               <div className={`px-5 pt-4 pb-5 ${plan.featured ? "bg-terracotta" : "bg-ink"}`}>
                 <div className="flex items-center justify-between mb-3">
                   {plan.badge ? (
@@ -130,7 +122,6 @@ export default function HevrePlusPage() {
                 </div>
               </div>
 
-              {/* Features */}
               <div className="bg-paper px-5 py-4 flex flex-col gap-2.5">
                 {plan.features.map((f) => (
                   <div key={f} className="flex items-center gap-2.5" style={{ direction: "rtl" }}>
@@ -150,19 +141,20 @@ export default function HevrePlusPage() {
         })}
 
         <p className="text-xs text-ink-3 text-center mt-1">ניתן לבטל בכל עת • ללא התחייבות</p>
+        {error && <p className="text-warm-danger text-sm text-center">{error}</p>}
       </main>
 
       <div className="fixed bottom-0 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
         <button
           onClick={handlePurchase}
-          disabled={!selected}
+          disabled={!selected || loading}
           className={`w-full h-14 font-serif font-semibold text-lg rounded-2xl transition-all ${
-            selected
+            selected && !loading
               ? "bg-terracotta text-cream active:opacity-90"
               : "bg-cream-warm text-ink-3 cursor-not-allowed"
           }`}
         >
-          {selected ? PLANS.find((p) => p.id === selected)?.cta : "בחר מסלול"}
+          {loading ? "מעבד..." : selected ? PLANS.find((p) => p.id === selected)?.cta : "בחר מסלול"}
         </button>
       </div>
     </div>
