@@ -8,6 +8,11 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // סגור את הדפדפן החיצוני אם פתוח (Capacitor)
+    if (typeof (window as any).Capacitor !== "undefined") {
+      import("@capacitor/browser").then(({ Browser }) => Browser.close());
+    }
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
         router.replace("/login");
