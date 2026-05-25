@@ -43,7 +43,7 @@ export default function ProfilePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const ext = file.name.split(".").pop();
-    const path = `avatars/${user.id}.${ext}`;
+    const path = `${user.id}/avatar.${ext}`;
     await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
     const url = data.publicUrl + "?t=" + Date.now();

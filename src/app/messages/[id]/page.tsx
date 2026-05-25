@@ -141,7 +141,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       </header>
 
       {/* Security notice */}
-      <div className="bg-cream-warm px-4 py-2 text-center border-b border-divider shrink-0">
+      <div className="bg-cream-warm px-4 py-2 text-center border-b border-divider shrink-0 sticky top-[73px] z-10">
         <p className="font-mono text-[10px] text-ink-3 uppercase tracking-wide">🔒 לצורכי אבטחה ההודעות ימחקו תוך 72 שעות</p>
       </div>
 

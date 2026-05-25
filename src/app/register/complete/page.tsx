@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import posthog from "posthog-js";
 import { ChevronRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -22,29 +22,59 @@ export default function RegisterCompletePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [birthDate, setBirthDate] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState('ארה"ב');
+  const [usState, setUsState] = useState("");
+  const [ilLicense, setIlLicense] = useState(false);
+  const [licenseCity, setLicenseCity] = useState("");
+  const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
+
+  // Restore all form fields on mount (survives navigation away and back)
   useEffect(() => {
-    setFirstName(localStorage.getItem("reg_first_name") || "");
-    setLastName(localStorage.getItem("reg_last_name") || "");
+    const draft = sessionStorage.getItem("reg_complete_draft");
+    if (draft) {
+      try {
+        const d = JSON.parse(draft);
+        if (d.firstName) setFirstName(d.firstName);
+        if (d.lastName) setLastName(d.lastName);
+        if (d.phone) setPhone(d.phone);
+        if (d.phoneCountry) setPhoneCountry(d.phoneCountry);
+        if (d.birthDate) setBirthDate(d.birthDate);
+        if (d.city) setCity(d.city);
+        if (d.country) setCountry(d.country);
+        if (d.usState) setUsState(d.usState);
+        if (typeof d.ilLicense === "boolean") setIlLicense(d.ilLicense);
+        if (d.licenseCity) setLicenseCity(d.licenseCity);
+        if (d.selectedLangs) setSelectedLangs(d.selectedLangs);
+      } catch {}
+    } else {
+      // No draft — load from previous registration steps
+      setFirstName(localStorage.getItem("reg_first_name") || "");
+      setLastName(localStorage.getItem("reg_last_name") || "");
+    }
 
     const storedEmail = localStorage.getItem("reg_email") || "";
     if (storedEmail) {
       setEmail(storedEmail);
     } else {
-      // Google OAuth — get email from session
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user?.email) setEmail(user.email);
       });
     }
+    initializedRef.current = true;
   }, []);
-  const [birthDate, setBirthDate] = useState("");
-  const [city, setCity] = useState("");
-  const [country, setCountry] = useState("");
-  const [usState, setUsState] = useState("");
-  const [ilLicense, setIlLicense] = useState(false);
-  const [licenseCity, setLicenseCity] = useState("");
-  const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
   const [langModalOpen, setLangModalOpen] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const initializedRef = useRef(false);
+
+  // Save draft on every change — only after initial restore is done
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    sessionStorage.setItem("reg_complete_draft", JSON.stringify({
+      firstName, lastName, phone, phoneCountry, birthDate, city, country, usState, ilLicense, licenseCity, selectedLangs,
+    }));
+  }, [firstName, lastName, phone, phoneCountry, birthDate, city, country, usState, ilLicense, licenseCity, selectedLangs]);
 
   const isInUSA = country === 'ארה"ב';
 
@@ -53,7 +83,7 @@ export default function RegisterCompletePage() {
     lastName: !lastName.trim(),
     phone: phoneCountry === "+1"
       ? !/^\d{10}$/.test(phone.replace(/\D/g, ""))
-      : !/^0\d{8,9}$/.test(phone.replace(/\D/g, "")),
+      : !/^\d{9,10}$/.test(phone.replace(/\D/g, "")),
     birthDate: birthDate.length < 10,
     location: isInUSA ? (!usState || !city) : false,
   };
@@ -136,6 +166,7 @@ export default function RegisterCompletePage() {
 
     ["reg_email","reg_first_name","reg_last_name","reg_age","reg_gender"].forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem("reg_password");
+    sessionStorage.removeItem("reg_complete_draft");
     posthog.identify(userId, { email: storedEmail, first_name: firstName, last_name: lastName, user_type: "seeker" });
     posthog.capture("user_registered", { city, country, user_type: "seeker" });
     router.push("/");
@@ -223,8 +254,8 @@ export default function RegisterCompletePage() {
               <input
                 type="tel"
                 value={phone}
-                maxLength={phoneCountry === "+1" ? 10 : 9}
-                placeholder={phoneCountry === "+1" ? "2125551234" : "501234567"}
+                maxLength={phoneCountry === "+1" ? 10 : 10}
+                placeholder={phoneCountry === "+1" ? "2125551234" : "0501234567"}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 style={{ direction: "ltr" }}
                 className={`flex-1 border rounded-xl h-11 px-3 text-left text-sm outline-none bg-white placeholder:text-gray-300 ${
