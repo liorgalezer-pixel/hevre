@@ -129,8 +129,8 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
 
   const toggleProps = [
     { label: "חובה רישיון נהיגה", value: license, set: setLicense },
-    { label: "כולל רכב", value: car, set: setCar },
-    { label: "כולל דיור", value: housing, set: setHousing },
+    { label: "מספק רכב", value: car, set: setCar },
+    { label: "מספק דיור", value: housing, set: setHousing },
     { label: 'עבודה בסופ"ש', value: weekend, set: setWeekend },
     { label: "עבודה בחגים", value: holidays, set: setHolidays },
   ];

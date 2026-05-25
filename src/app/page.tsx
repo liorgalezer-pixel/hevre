@@ -57,6 +57,7 @@ export default function HomePage() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
+  const [bellSeen, setBellSeen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
   const [approvedApps, setApprovedApps] = useState<{ jobId: string; title: string; company: string }[]>([]);
@@ -201,6 +202,7 @@ export default function HomePage() {
       company: j.company_name || j.company_address || "חברה",
       salary: j.salary || "",
       location: (j.job_cities?.length ? j.job_cities.join(", ") : j.company_address) || "",
+      states: j.job_states || [],
       hours: j.start_time && j.end_time ? `${j.start_time}-${j.end_time}` : "",
       categories: j.categories || [],
       car: !!j.car,
@@ -294,6 +296,7 @@ export default function HomePage() {
       if (activeCategory && !j.categories.includes(activeCategory)) return false;
       if (filters) {
         if (filters.categories.length > 0 && !filters.categories.some(c => j.categories.includes(c))) return false;
+        if (filters.states.length > 0 && !(j as MockJob & { states?: string[] }).states?.some(s => filters.states.includes(s))) return false;
         if (filters.cities.length > 0 && !filters.cities.some(city => j.location.toLowerCase().includes(city.toLowerCase()))) return false;
         if (filters.license && !j.license) return false;
         if (filters.car && !j.car) return false;
@@ -315,9 +318,9 @@ export default function HomePage() {
               <MessageCircle size={24} className="text-ink" strokeWidth={1.8} />
             </button>
             <div ref={bellRef} className="relative">
-              <button onClick={() => setBellOpen((v) => !v)} className="relative w-11 h-11 flex items-center justify-center">
+              <button onClick={() => { setBellOpen((v) => !v); setBellSeen(true); }} className="relative w-11 h-11 flex items-center justify-center">
                 <Bell size={24} className="text-ink" strokeWidth={1.8} />
-                {(approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
+                {!bellSeen && (approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
                   <span className="absolute top-2 right-2 w-2 h-2 bg-terracotta rounded-full" />
                 )}
               </button>
@@ -577,7 +580,7 @@ export default function HomePage() {
                 )}
                 {job.car && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🚗 כולל רכב</span>}
                 {job.license && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🪪 דרוש רישיון</span>}
-                {job.housing && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🏠 כולל דיור</span>}
+                {job.housing && <span className="bg-cream text-ink-2 text-xs font-medium px-2.5 py-1 rounded-full">🏠 מספק דיור</span>}
               </div>
             </div>
           );
@@ -660,7 +663,7 @@ export default function HomePage() {
                     )}
                     {selectedJob.car && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🚗 כולל רכב</span>}
                     {selectedJob.license && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🪪 דרוש רישיון</span>}
-                    {selectedJob.housing && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🏠 כולל דיור</span>}
+                    {selectedJob.housing && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">🏠 מספק דיור</span>}
                     {selectedJob.weekend && <span className="bg-cream text-ink-2 text-sm font-medium px-3 py-1.5 rounded-full">📅 עבודה בסוף שבוע</span>}
                   </div>
 

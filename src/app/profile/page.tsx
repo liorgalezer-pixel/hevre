@@ -56,8 +56,9 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("first_name").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("first_name, avatar_url").eq("id", user.id).single();
       if (data?.first_name) setFirstName(data.first_name);
+      if (data?.avatar_url) setAvatarUrl(data.avatar_url);
     };
     fetchProfile();
   }, []);

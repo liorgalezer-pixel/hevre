@@ -13,6 +13,7 @@ export type MockJob = {
   description: string;
   requirements: string[];
   questions: string[];
+  states?: string[];
 };
 
 export const MOCK_JOBS: MockJob[] = [

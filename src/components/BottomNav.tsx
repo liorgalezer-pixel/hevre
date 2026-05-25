@@ -61,7 +61,7 @@ export default function BottomNav() {
 
           {/* Messages with unread badge */}
           <button
-            onClick={() => { setHasUnread(false); router.push("/messages"); }}
+            onClick={() => { setHasUnread(false); localStorage.setItem("hevre_messages_last_seen", new Date().toISOString()); router.push("/messages"); }}
             className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 min-w-[44px] relative"
           >
             <div className="relative">

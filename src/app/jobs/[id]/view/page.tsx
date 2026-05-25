@@ -208,7 +208,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
               <Clock size={11} strokeWidth={2} />{job.hours}
             </span>
             {job.car && <span className="bg-cream-warm text-ink-2 text-xs font-medium px-3 py-1.5 rounded-full ring-1 ring-divider">🚗 כולל רכב</span>}
-            {job.housing && <span className="bg-cream-warm text-ink-2 text-xs font-medium px-3 py-1.5 rounded-full ring-1 ring-divider">🏠 כולל דיור</span>}
+            {job.housing && <span className="bg-cream-warm text-ink-2 text-xs font-medium px-3 py-1.5 rounded-full ring-1 ring-divider">🏠 מספק דיור</span>}
             {job.weekend && <span className="bg-cream-warm text-ink-2 text-xs font-medium px-3 py-1.5 rounded-full ring-1 ring-divider">📅 עבודה בסופ&quot;ש</span>}
           </div>
         </div>
