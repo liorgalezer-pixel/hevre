@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronRight, X, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, X, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import UserLocationPicker from "@/components/UserLocationPicker";
@@ -42,6 +42,7 @@ export default function ProfileEditPage() {
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["עברית"]);
   const [langModalOpen, setLangModalOpen] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [locationError, setLocationError] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -106,6 +107,10 @@ export default function ProfileEditPage() {
   }, []);
 
   const handleSave = async () => {
+    const isInUSA = country === 'ארה"ב';
+    const locInvalid = isInUSA ? (!usState || !city) : !country;
+    if (locInvalid) { setLocationError(true); return; }
+    setLocationError(false);
     const data: ProfileData = {
       firstName, lastName, phone, phoneCountry, email,
       birthDate, city, country, usState, ilLicense, usLicense, selectedLangs,
@@ -168,14 +173,14 @@ export default function ProfileEditPage() {
 
       {/* Header */}
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
-        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">עדכון פרטים אישיים</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">עדכון פרטים אישיים</h1>
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 py-6 pb-32">
@@ -288,12 +293,15 @@ export default function ProfileEditPage() {
           {/* Location Picker */}
           <UserLocationPicker
             country={country}
-            setCountry={setCountry}
+            setCountry={(v) => { setCountry(v); setLocationError(false); }}
             usState={usState}
-            setUsState={setUsState}
+            setUsState={(v) => { setUsState(v); setLocationError(false); }}
             city={city}
-            setCity={setCity}
+            setCity={(v) => { setCity(v); setLocationError(false); }}
           />
+          {locationError && (
+            <p className="text-xs text-warm-danger text-right -mt-2">יש למלא מיקום — מדינה ועיר בארה"ב, או מדינת מגורים מחוץ לארה"ב</p>
+          )}
 
           {/* License toggle */}
           <div className="flex items-center gap-3 py-1">

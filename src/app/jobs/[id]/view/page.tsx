@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import posthog from "posthog-js";
-import { ChevronRight, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, CalendarDays, Send, Heart, Share2, LogIn } from "lucide-react";
+import { ChevronLeft, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, CalendarDays, Send, Heart, Share2, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { MOCK_JOBS } from "@/lib/mock-jobs";
 import BottomNav from "@/components/BottomNav";
@@ -158,9 +158,10 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
 
       {/* Header */}
       <header className="bg-paper px-4 pt-12 pb-3 flex items-center justify-between border-b border-divider sticky top-0 z-40">
-        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
+        <div className="flex items-baseline gap-1">
+          <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+        </div>
         <span className="font-serif text-base font-bold text-ink tracking-tight">פרטי משרה</span>
         <div className="flex gap-1">
           <button onClick={() => setSaved((v) => !v)} className="w-11 h-11 flex items-center justify-center">
@@ -180,6 +181,9 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
             className="w-11 h-11 flex items-center justify-center"
           >
             <Share2 size={22} className="text-ink-3" strokeWidth={1.8} />
+          </button>
+          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+            <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
           </button>
         </div>
       </header>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronRight, X, ImageIcon, Eye, Users } from "lucide-react";
+import { ChevronLeft, X, ImageIcon, Eye, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -77,12 +77,12 @@ export default function MyJobsPage() {
   if (!loaded) return (
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
-        <div className="w-11 h-11" />
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
+        <div className="w-11 h-11" />
       </header>
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
         {[1, 2].map(i => (
@@ -108,14 +108,14 @@ export default function MyJobsPage() {
   if (!isLoggedIn) return (
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
-        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
+        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+        </button>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5 pb-24">
         <div className="text-5xl">🔒</div>
@@ -134,14 +134,14 @@ export default function MyJobsPage() {
 
       {/* Header */}
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
-        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מודעות שפרסמתי</h1>
+        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+        </button>
       </header>
 
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">

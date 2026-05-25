@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -40,14 +40,14 @@ export default function PrivacyPage() {
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider sticky top-0 z-10">
-        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink" strokeWidth={2} />
-        </button>
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מדיניות פרטיות</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מדיניות פרטיות</h1>
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink" strokeWidth={2} />
+        </button>
       </header>
 
       <main className="flex-1 px-5 py-6 flex flex-col gap-8 pb-16">

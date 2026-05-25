@@ -63,8 +63,8 @@ export async function POST(req: NextRequest) {
         stripe_price_id: sub.items.data[0].price.id,
         plan,
         status: sub.status,
-        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        current_period_start: new Date(sub.items.data[0].current_period_start * 1000).toISOString(),
+        current_period_end: new Date(sub.items.data[0].current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "stripe_subscription_id" });
 

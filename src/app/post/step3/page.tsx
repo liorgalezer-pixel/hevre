@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import posthog from "posthog-js";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
-import { ChevronRight, ChevronDown, Check } from "lucide-react";
+import { ChevronLeft, ChevronDown, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const STORAGE_KEY = STORAGE_KEYS.POST_STEP_2;
@@ -71,6 +71,7 @@ export default function PostJobStep3Page() {
   const [salary, setSalary] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [onDuty, setOnDuty] = useState(false);
   const [weekend, setWeekend] = useState(false);
   const [holidays, setHolidays] = useState(false);
   const [license, setLicense] = useState(false);
@@ -85,6 +86,7 @@ export default function PostJobStep3Page() {
       if (d.salary !== undefined) setSalary(d.salary);
       if (d.startTime) setStartTime(d.startTime);
       if (d.endTime) setEndTime(d.endTime);
+      if (d.onDuty !== undefined) setOnDuty(d.onDuty);
       if (d.weekend !== undefined) setWeekend(d.weekend);
       if (d.holidays !== undefined) setHolidays(d.holidays);
       if (d.license !== undefined) setLicense(d.license);
@@ -95,11 +97,11 @@ export default function PostJobStep3Page() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      salary, startTime, endTime, weekend, holidays, license, car, housing,
+      salary, startTime, endTime, onDuty, weekend, holidays, license, car, housing,
     }));
-  }, [salary, startTime, endTime, weekend, holidays, license, car, housing]);
+  }, [salary, startTime, endTime, onDuty, weekend, holidays, license, car, housing]);
 
-  const canContinue = salary.trim().length > 0 && startTime.length > 0 && endTime.length > 0;
+  const canContinue = salary.trim().length > 0 && (onDuty || (startTime.length > 0 && endTime.length > 0));
 
   const handleContinue = () => {
     posthog.capture("post_job_step", { step: 3, step_name: "conditions" });
@@ -111,14 +113,14 @@ export default function PostJobStep3Page() {
 
       <header className="bg-paper px-4 pt-12 pb-4 border-b border-divider">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-            <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-          </button>
-          <h1 className="font-serif text-lg font-bold text-ink tracking-tight">פרסום משרה</h1>
           <div className="flex items-baseline gap-1">
             <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
             <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
           </div>
+          <h1 className="font-serif text-lg font-bold text-ink tracking-tight">פרסום משרה</h1>
+          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+            <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {[1, 2, 3, 4].map(s => (
@@ -157,17 +159,36 @@ export default function PostJobStep3Page() {
         {/* Work hours */}
         <div className="flex flex-col gap-3">
           <h2 className="font-serif text-base font-bold text-ink text-right tracking-tight">שעות עבודה <span className="text-warm-danger">*</span></h2>
-          <div className="flex items-center justify-center gap-6">
-            <div className="flex flex-col items-center gap-1">
-              <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">סיום</span>
-              <TimePicker value={endTime} onChange={setEndTime} />
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">התחלה</span>
-              <TimePicker value={startTime} onChange={setStartTime} />
+          {!onDuty && (
+            <>
+              <div className="flex items-center justify-center gap-6" dir="rtl">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">התחלה</span>
+                  <TimePicker value={startTime} onChange={setStartTime} />
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">סיום</span>
+                  <TimePicker value={endTime} onChange={setEndTime} />
+                </div>
+              </div>
+              <p className="text-xs text-ink-3 text-right">(אופציה לבחור בקפיצות של חצי שעה)</p>
+            </>
+          )}
+
+          {/* On-duty toggle */}
+          <div className="flex items-center justify-between bg-paper ring-1 ring-divider rounded-2xl px-4 py-3">
+            <button
+              type="button"
+              onClick={() => { setOnDuty(!onDuty); if (!onDuty) { setStartTime(""); setEndTime(""); } }}
+              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${onDuty ? "bg-terracotta" : "bg-divider"}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${onDuty ? "right-0.5" : "left-0.5"}`} />
+            </button>
+            <div className="text-right">
+              <p className="text-sm font-medium text-ink">עבודת כוננות / שעות משתנות</p>
+              <p className="text-xs text-ink-3">שעות העבודה אינן קבועות</p>
             </div>
           </div>
-          <p className="text-xs text-ink-3 text-right">(אופציה לבחור בקפיצות של חצי שעה)</p>
         </div>
 
         {/* Toggles */}

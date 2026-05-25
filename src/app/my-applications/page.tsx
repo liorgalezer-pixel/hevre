@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapPin, DollarSign, MessageSquare, ChevronRight, ChevronDown, Eye } from "lucide-react";
+import { MapPin, DollarSign, MessageSquare, ChevronLeft, ChevronDown, Eye } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
@@ -79,14 +79,14 @@ export default function MyApplicationsPage() {
   if (!isLoggedIn) return (
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider">
-        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מועמדות למשרות שלי</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">מועמדות למשרות שלי</h1>
+        <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+        </button>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-5 pb-24">
         <div className="text-5xl">🔒</div>
@@ -106,13 +106,13 @@ export default function MyApplicationsPage() {
       {/* Header */}
       <header className="bg-paper px-4 pt-12 pb-3">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
-            <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-          </button>
           <div className="flex items-baseline gap-1">
             <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
             <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
           </div>
+          <button onClick={() => router.push("/profile")} className="w-11 h-11 flex items-center justify-center">
+            <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+          </button>
         </div>
       </header>
 

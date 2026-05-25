@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { ChevronRight, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, ChevronLeft, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
+import { ChevronLeft, Globe, Building2, DollarSign, Clock, IdCard, Car, BedDouble, MessageCircle, Pencil, Snowflake, Share2, Trash2, Eye, Heart, Users, X, PlayCircle, Archive, ArchiveRestore, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -43,6 +43,9 @@ type Applicant = {
   license: boolean;
   languages: string[];
   avatar_url: string | null;
+  country: string;
+  us_state: string;
+  city: string;
 };
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -62,7 +65,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const loadApplicants = async () => {
     const { data } = await supabase
       .from("applications")
-      .select("id, status, applicant_id, answers, about_self, profiles(first_name, last_name, age, gender, intl_license, languages)")
+      .select("id, status, applicant_id, answers, about_self, profiles(first_name, last_name, age, gender, intl_license, languages, country, us_state, city)")
       .eq("job_id", id)
       .order("created_at", { ascending: false });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,6 +81,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       license: !!a.profiles?.intl_license,
       languages: a.profiles?.languages || [],
       avatar_url: null,
+      country: a.profiles?.country || "",
+      us_state: a.profiles?.us_state || "",
+      city: a.profiles?.city || "",
     })));
   };
 
@@ -173,14 +179,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
       <header className="bg-paper px-4 pt-12 pb-3 flex items-center justify-between border-b border-divider sticky top-0 z-40">
-        <button onClick={() => router.push("/my-jobs")} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
         <div className="w-11" />
+        <button onClick={() => router.push("/my-jobs")} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+        </button>
       </header>
 
       <main className="flex-1 px-4 pt-5 pb-44 flex flex-col gap-4">
@@ -418,6 +424,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <span className={`text-xs rounded-full px-2.5 py-1 ${selectedApplicant.license ? "bg-warm-success-bg text-warm-success" : "bg-cream-warm text-ink-3"}`}>
                       {selectedApplicant.license ? "✓ יש רישיון" : "אין רישיון"}
                     </span>
+                    {selectedApplicant.country && (
+                      <span className="text-xs rounded-full px-2.5 py-1 font-medium bg-cream-warm text-ink-2">
+                        {`גר ב${selectedApplicant.country === 'ארה"ב'
+                          ? [selectedApplicant.us_state, selectedApplicant.city].filter(Boolean).join(", ") || 'ארה"ב'
+                          : selectedApplicant.country}`}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

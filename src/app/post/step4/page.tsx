@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import posthog from "posthog-js";
-import { ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { STORAGE_KEYS, myJobsKey } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
@@ -44,8 +44,9 @@ export default function PostJobStep4Page() {
       jobStates: step1.selectedStates || [],
       jobCities: step1.selectedCities || [],
       salary: step2.salary || "",
-      startTime: step2.startTime || "",
-      endTime: step2.endTime || "",
+      startTime: step2.onDuty ? "כוננות" : (step2.startTime || ""),
+      endTime: step2.onDuty ? "כוננות" : (step2.endTime || ""),
+      onDuty: step2.onDuty || false,
       weekend: step2.weekend || false,
       holidays: step2.holidays || false,
       license: step2.license || false,
@@ -92,14 +93,14 @@ export default function PostJobStep4Page() {
 
       <header className="bg-paper px-4 pt-12 pb-4 border-b border-divider">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-            <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-          </button>
-          <h1 className="font-serif text-lg font-bold text-ink tracking-tight">פרסום משרה</h1>
           <div className="flex items-baseline gap-1">
             <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
             <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
           </div>
+          <h1 className="font-serif text-lg font-bold text-ink tracking-tight">פרסום משרה</h1>
+          <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+            <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {[1, 2, 3, 4].map(s => (

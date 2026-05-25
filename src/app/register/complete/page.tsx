@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import posthog from "posthog-js";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronLeft, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -80,7 +80,7 @@ export default function RegisterCompletePage() {
       ? !/^\d{10}$/.test(phone.replace(/\D/g, ""))
       : !/^\d{9,10}$/.test(phone.replace(/\D/g, "")),
     birthDate: birthDate.length < 10,
-    location: isInUSA ? (!usState || !city) : false,
+    location: isInUSA ? (!usState || !city) : !country,
   };
 
   const hasErrors = Object.values(errors).some(Boolean);
@@ -183,7 +183,7 @@ export default function RegisterCompletePage() {
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
         </button>
       </div>
 

@@ -1,11 +1,47 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { ChevronRight, X, CheckCircle2, Plus } from "lucide-react";
+import { useState, useEffect, use, useRef } from "react";
+import { ChevronLeft, X, CheckCircle2, Plus, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CATEGORIES } from "@/lib/categories";
 import LocationPicker from "@/components/LocationPicker";
+
+const TIMES: string[] = [];
+for (let h = 0; h < 24; h++) {
+  for (let m = 0; m < 60; m += 30) {
+    TIMES.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  }
+}
+
+function TimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 bg-cream ring-1 ring-divider rounded-xl h-11 px-3 min-w-[90px] justify-between focus:ring-terracotta">
+        <ChevronDown size={14} className="text-ink-3 shrink-0" />
+        <span className={`text-sm font-mono ${value ? "text-ink" : "text-ink-3"}`}>{value || "--:--"}</span>
+      </button>
+      {open && (
+        <div className="absolute z-50 bottom-12 left-0 bg-paper ring-1 ring-divider rounded-2xl shadow-lg overflow-y-auto max-h-48 min-w-[90px]">
+          {TIMES.map(t => (
+            <button key={t} type="button" onClick={() => { onChange(t); setOpen(false); }}
+              className={`w-full px-4 py-2.5 text-sm font-mono text-left hover:bg-cream transition-colors ${value === t ? "text-terracotta font-bold" : "text-ink"}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function JobEditPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -21,6 +57,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   const [salary, setSalary] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [onDuty, setOnDuty] = useState(false);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -46,8 +83,10 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
       setCompanyName(data.company_name || "");
       setDescription(data.description || "");
       setSalary(data.salary || "");
-      setStartTime(data.start_time || "");
-      setEndTime(data.end_time || "");
+      const isOnDuty = data.start_time === "כוננות" || !data.start_time;
+      setOnDuty(isOnDuty);
+      setStartTime(isOnDuty ? "" : (data.start_time || ""));
+      setEndTime(isOnDuty ? "" : (data.end_time || ""));
       setSelectedStates(data.job_states || []);
       setSelectedCities(data.job_cities || []);
       setSelectedCategories(data.categories || []);
@@ -71,8 +110,8 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
       company_name: companyName,
       description,
       salary,
-      start_time: startTime,
-      end_time: endTime,
+      start_time: onDuty ? "כוננות" : startTime,
+      end_time: onDuty ? "כוננות" : endTime,
       job_states: selectedStates,
       job_cities: selectedCities,
       company_address: selectedCities[0] || selectedStates[0] || "",
@@ -139,14 +178,14 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
     <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
 
       <header className="bg-paper px-4 pt-12 pb-4 flex items-center justify-between border-b border-divider sticky top-0 z-40">
-        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
-        </button>
-        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">עריכת מודעה</h1>
         <div className="flex items-baseline gap-1">
           <span className="font-serif text-lg font-bold text-ink tracking-tight">Hevre</span>
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
+        <h1 className="font-serif text-lg font-bold text-ink tracking-tight">עריכת מודעה</h1>
+        <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 pt-6 pb-36 flex flex-col gap-5">
@@ -168,21 +207,41 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שכר</label>
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שכר שבועי ממוצע</label>
             <input type="text" value={salary} onChange={e => setSalary(e.target.value)} placeholder="למשל: $18/שעה" dir="rtl"
               className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-right text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta" />
           </div>
 
-          <div className="flex gap-3">
-            <div className="flex flex-col gap-1 flex-1">
-              <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שעת התחלה</label>
-              <input type="text" value={startTime} onChange={e => setStartTime(e.target.value)} placeholder="09:00" dir="ltr"
-                className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-left text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta" />
-            </div>
-            <div className="flex flex-col gap-1 flex-1">
-              <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שעת סיום</label>
-              <input type="text" value={endTime} onChange={e => setEndTime(e.target.value)} placeholder="17:00" dir="ltr"
-                className="w-full bg-cream ring-1 ring-divider rounded-xl h-11 px-3 text-left text-sm outline-none placeholder:text-ink-3 focus:ring-terracotta" />
+          {/* Work hours */}
+          <div className="flex flex-col gap-3">
+            <label className="font-mono text-[11px] text-ink-3 uppercase tracking-wider text-right">שעות עבודה</label>
+            {!onDuty && (
+              <>
+                <div className="flex items-center justify-center gap-6" dir="rtl">
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">התחלה</span>
+                    <TimePicker value={startTime} onChange={setStartTime} />
+                  </div>
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">סיום</span>
+                    <TimePicker value={endTime} onChange={setEndTime} />
+                  </div>
+                </div>
+                <p className="text-xs text-ink-3 text-right">(אופציה לבחור בקפיצות של חצי שעה)</p>
+              </>
+            )}
+            <div className="flex items-center justify-between bg-cream ring-1 ring-divider rounded-2xl px-4 py-3">
+              <button
+                type="button"
+                onClick={() => { setOnDuty(!onDuty); if (!onDuty) { setStartTime(""); setEndTime(""); } }}
+                className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${onDuty ? "bg-terracotta" : "bg-divider"}`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${onDuty ? "right-0.5" : "left-0.5"}`} />
+              </button>
+              <div className="text-right">
+                <p className="text-sm font-medium text-ink">עבודת כוננות / שעות משתנות</p>
+                <p className="text-xs text-ink-3">שעות העבודה אינן קבועות</p>
+              </div>
             </div>
           </div>
         </div>

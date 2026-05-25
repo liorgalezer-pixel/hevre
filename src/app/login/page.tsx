@@ -3,7 +3,7 @@
 import { useState } from "react";
 import posthog from "posthog-js";
 import Link from "next/link";
-import { Eye, EyeOff, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -44,7 +44,7 @@ export default function LoginPage() {
           <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
         </div>
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-ink-2" strokeWidth={2} />
+          <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
         </button>
       </div>
 

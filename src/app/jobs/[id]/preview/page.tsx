@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { ChevronRight, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, Heart, Share2, Eye } from "lucide-react";
+import { ChevronLeft, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, Heart, Share2, Eye } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -84,7 +84,7 @@ export default function JobPreviewPage({ params }: { params: Promise<{ id: strin
       {/* Header */}
       <header className="bg-white px-4 pt-10 pb-3 flex items-center justify-between border-b border-gray-100">
         <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
-          <ChevronRight size={24} className="text-gray-700" strokeWidth={2} />
+          <ChevronLeft size={24} className="text-gray-700" strokeWidth={2} />
         </button>
         <Image src="/hevre-logo.png" alt="Hevre" width={80} height={32} className="object-contain" />
         <div className="flex items-center gap-1">

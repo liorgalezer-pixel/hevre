@@ -334,6 +334,11 @@ export default function HomePage() {
       {/* Header */}
       <header className="bg-paper px-4 pt-10 pb-3 sticky top-0 z-40 border-b border-divider">
         <div className="flex items-center justify-between mb-3">
+          {/* Right side: wordmark logo */}
+          <div className="flex items-baseline gap-1">
+            <span className="font-serif text-2xl font-bold text-ink tracking-tight">Hevre</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
+          </div>
           {/* Left side: messages + bell */}
           <div className="flex items-center gap-1">
             <button onClick={() => router.push("/messages")} className="relative w-11 h-11 flex items-center justify-center">
@@ -347,7 +352,7 @@ export default function HomePage() {
                 )}
               </button>
               {bellOpen && (
-                <div className="absolute top-12 right-0 z-50 bg-paper rounded-2xl shadow-xl ring-1 ring-divider w-72 p-4 flex flex-col gap-2" dir="rtl">
+                <div className="absolute top-12 left-0 z-50 bg-paper rounded-2xl shadow-xl ring-1 ring-divider w-72 p-4 flex flex-col gap-2" dir="rtl">
                   <div className="flex items-center justify-between mb-1" style={{ direction: "ltr" }}>
                     <button
                       onClick={async () => {
@@ -413,11 +418,6 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-          </div>
-          {/* Right side: wordmark logo */}
-          <div className="flex items-baseline gap-1">
-            <span className="font-serif text-2xl font-bold text-ink tracking-tight">Hevre</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-terracotta self-center" />
           </div>
         </div>
 
