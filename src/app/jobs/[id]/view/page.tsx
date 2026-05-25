@@ -141,6 +141,8 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       about_self: aboutSelf,
     });
     if (!error) {
+      // Ensure a view is recorded — applicant definitely saw the job
+      supabase.from("job_views").upsert({ job_id: id, viewer_id: user.id }, { onConflict: "job_id,viewer_id" });
       posthog.capture("application_submitted", {
         job_id: id,
         category: job.categories?.[0] ?? null,

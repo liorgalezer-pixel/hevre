@@ -92,11 +92,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         setJob(found as unknown as Job);
         setFrozen(!!found.frozen);
       }
+      await loadApplicants();
       const { count: vCount } = await supabase
         .from("job_views").select("*", { count: "exact", head: true })
         .eq("job_id", id);
-      setViewCount(vCount || 0);
-      await loadApplicants();
+      const { count: appCount } = await supabase
+        .from("applications").select("*", { count: "exact", head: true })
+        .eq("job_id", id);
+      setViewCount(Math.max(vCount || 0, appCount || 0));
       const { count: convCount } = await supabase
         .from("conversations")
         .select("id", { count: "exact", head: true })
