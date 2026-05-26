@@ -6,8 +6,6 @@ import Link from "next/link";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Browser } from "@capacitor/browser";
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +15,10 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError("יש למלא אימייל וסיסמה");
+      return;
+    }
     setLoading(true);
     setError("");
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -26,11 +28,12 @@ export default function LoginPage() {
       return;
     }
     if (data.user) {
-      // Detect user_type: employer if they have posted jobs
-      const { count } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("created_by", data.user.id);
-      const userType = (count ?? 0) > 0 ? "employer" : "seeker";
-      posthog.identify(data.user.id, { email: data.user.email, user_type: userType });
-      posthog.capture("user_logged_in", { user_type: userType });
+      try {
+        const { count } = await supabase.from("jobs").select("id", { count: "exact", head: true }).eq("created_by", data.user.id);
+        const userType = (count ?? 0) > 0 ? "employer" : "seeker";
+        posthog.identify(data.user.id, { email: data.user.email, user_type: userType });
+        posthog.capture("user_logged_in", { user_type: userType });
+      } catch {}
     }
     router.push("/");
   };
@@ -97,7 +100,7 @@ export default function LoginPage() {
 
       <button
         onClick={handleLogin}
-        disabled={loading || !email || !password}
+        disabled={loading}
         className="w-full font-serif font-semibold text-base rounded-2xl h-14 mb-6 transition-opacity text-cream bg-terracotta active:opacity-90 disabled:opacity-40"
       >
         {loading ? "מתחבר..." : "התחברות"}
@@ -127,6 +130,7 @@ export default function LoginPage() {
           if (error) { alert("שגיאה: " + error.message); return; }
 
           if (isCapacitor && data?.url) {
+            const { Browser } = await import("@capacitor/browser");
             await Browser.open({ url: data.url });
           }
         }}
