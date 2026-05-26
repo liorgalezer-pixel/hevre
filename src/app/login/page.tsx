@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Browser } from "@capacitor/browser";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -126,7 +127,6 @@ export default function LoginPage() {
           if (error) { alert("שגיאה: " + error.message); return; }
 
           if (isCapacitor && data?.url) {
-            const { Browser } = await import("@capacitor/browser");
             await Browser.open({ url: data.url });
           }
         }}

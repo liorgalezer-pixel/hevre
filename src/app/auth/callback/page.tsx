@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Browser } from "@capacitor/browser";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -10,7 +11,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     // סגור את הדפדפן החיצוני אם פתוח (Capacitor)
     if (typeof (window as any).Capacitor !== "undefined") {
-      import("@capacitor/browser").then(({ Browser }) => Browser.close());
+      Browser.close().catch(() => {});
     }
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
