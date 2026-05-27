@@ -39,11 +39,9 @@ async function setupPushNotifications() {
     const { PushNotifications } = await import("@capacitor/push-notifications");
 
     const permStatus = await PushNotifications.checkPermissions();
-    alert("Push status: " + permStatus.receive);
 
     if (permStatus.receive === "prompt") {
       const result = await PushNotifications.requestPermissions();
-      alert("After request: " + result.receive);
       if (result.receive !== "granted") return;
     } else if (permStatus.receive !== "granted") {
       return;
