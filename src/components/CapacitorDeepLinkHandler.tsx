@@ -9,6 +9,14 @@ export default function CapacitorDeepLinkHandler() {
   useEffect(() => {
     if (typeof (window as any).Capacitor === "undefined") return;
 
+    import("@codetrix-studio/capacitor-google-auth").then(({ GoogleAuth }) => {
+      GoogleAuth.initialize({
+        clientId: "360691641891-ctl91prtra4mer72d4kl4sqdq4lqt7dh.apps.googleusercontent.com",
+        scopes: ["profile", "email"],
+        grantOfflineAccess: true,
+      });
+    }).catch(() => {});
+
     import("@capacitor/app").then(({ App }) => {
       App.addListener("appUrlOpen", (event: { url: string }) => {
         const url = event.url;

@@ -45,11 +45,6 @@ export default function LoginPage() {
 
       if (isCapacitor) {
         const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
-        await GoogleAuth.initialize({
-          clientId: "360691641891-ctl91prtra4mer72d4kl4sqdq4lqt7dh.apps.googleusercontent.com",
-          scopes: ["profile", "email"],
-          grantOfflineAccess: true,
-        });
         const googleUser = await GoogleAuth.signIn();
         const idToken = googleUser.authentication.idToken;
         const { error } = await supabase.auth.signInWithIdToken({
