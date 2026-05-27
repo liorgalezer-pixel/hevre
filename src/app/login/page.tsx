@@ -41,13 +41,31 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: "https://hevre.vercel.app/auth/callback",
-          queryParams: { prompt: "select_account" },
-        },
-      });
+      const isCapacitor = typeof (window as any).Capacitor !== "undefined";
+
+      if (isCapacitor) {
+        const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
+        await GoogleAuth.initialize({
+          clientId: "360691641891-ctl91prtra4mer72d4kl4sqdq4lqt7dh.apps.googleusercontent.com",
+          scopes: ["profile", "email"],
+          grantOfflineAccess: true,
+        });
+        const googleUser = await GoogleAuth.signIn();
+        const idToken = googleUser.authentication.idToken;
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+        });
+        if (!error) router.push("/");
+      } else {
+        await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback`,
+            queryParams: { prompt: "select_account" },
+          },
+        });
+      }
     } catch {}
   };
 
