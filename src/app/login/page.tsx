@@ -42,6 +42,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       const isCapacitor = typeof (window as any).Capacitor !== "undefined";
+      alert("isCapacitor=" + isCapacitor);
 
       if (isCapacitor) {
         const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth");
