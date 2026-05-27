@@ -125,24 +125,30 @@ export default function LoginPage() {
 
       <button
         onClick={async () => {
-          const isCapacitor = typeof (window as any).Capacitor !== "undefined";
-          const redirectTo = isCapacitor
-            ? "hevre://auth/callback"
-            : `${window.location.origin}/auth/callback`;
+          try {
+            const isCapacitor = typeof (window as any).Capacitor !== "undefined";
+            alert("Google נלחץ, isCapacitor=" + isCapacitor);
+            const redirectTo = isCapacitor
+              ? "hevre://auth/callback"
+              : `${window.location.origin}/auth/callback`;
 
-          const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: "google",
-            options: {
-              redirectTo,
-              queryParams: { prompt: "select_account" },
-              skipBrowserRedirect: isCapacitor,
-            },
-          });
-          if (error) { alert("שגיאה: " + error.message); return; }
+            const { data, error } = await supabase.auth.signInWithOAuth({
+              provider: "google",
+              options: {
+                redirectTo,
+                queryParams: { prompt: "select_account" },
+                skipBrowserRedirect: isCapacitor,
+              },
+            });
+            if (error) { alert("שגיאת OAuth: " + error.message); return; }
+            alert("data.url=" + data?.url);
 
-          if (isCapacitor && data?.url) {
-            const { Browser } = await import("@capacitor/browser");
-            await Browser.open({ url: data.url });
+            if (isCapacitor && data?.url) {
+              const { Browser } = await import("@capacitor/browser");
+              await Browser.open({ url: data.url });
+            }
+          } catch (e: any) {
+            alert("שגיאה כללית: " + e?.message);
           }
         }}
         className="w-full bg-paper ring-1 ring-divider rounded-2xl h-14 flex items-center justify-center gap-3 active:bg-cream transition-colors mb-6"
