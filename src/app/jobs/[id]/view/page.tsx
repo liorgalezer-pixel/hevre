@@ -141,6 +141,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       answers: answers,
       about_self: aboutSelf,
     });
+    console.log("application insert result:", error);
     if (!error) {
       // Ensure a view is recorded — applicant definitely saw the job
       supabase.from("job_views").upsert({ job_id: id, viewer_id: user.id }, { onConflict: "job_id,viewer_id" });
@@ -149,6 +150,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
         category: job.categories?.[0] ?? null,
       });
       // Notify employer (fire-and-forget)
+      console.log("sending notification for job:", id, "applicant:", user.id);
       fetch("/api/notifications/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
