@@ -8,6 +8,7 @@ import { MOCK_JOBS } from "@/lib/mock-jobs";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
 import { myApplicationsKey, STORAGE_KEYS } from "@/lib/storage-keys";
+import { shareJob } from "@/lib/share";
 
 type Application = {
   jobId: string;
@@ -169,14 +170,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
           </button>
           <button
             onClick={async () => {
-              const url = window.location.href;
-              const title = userJob?.title ?? "משרה ב-Hevre";
-              if (navigator.share) {
-                await navigator.share({ title, url });
-              } else {
-                await navigator.clipboard.writeText(url);
-                alert("הקישור הועתק!");
-              }
+              await shareJob(userJob?.title ?? "משרה ב-Hevre", window.location.href);
             }}
             className="w-11 h-11 flex items-center justify-center"
           >

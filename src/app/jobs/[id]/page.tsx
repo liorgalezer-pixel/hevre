@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import posthog from "posthog-js";
 import BottomNav from "@/components/BottomNav";
+import { shareJob } from "@/lib/share";
 
 type Job = {
   id: string;
@@ -247,9 +248,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             { icon: Trash2, label: "הסרה", action: () => setConfirmRemove(true), danger: true },
             { icon: Share2, label: "שיתוף", action: async () => {
               const url = `${window.location.origin}/jobs/${id}/view`;
-              const title = job?.title ?? "משרה ב-Hevre";
-              if (navigator.share) { await navigator.share({ title, url }); }
-              else { await navigator.clipboard.writeText(url); alert("הקישור הועתק!"); }
+              await shareJob(job?.title ?? "משרה ב-Hevre", url);
             }, danger: false },
             { icon: frozen ? PlayCircle : Snowflake, label: frozen ? "החזרה לפעילות" : "הקפאה", action: () => frozen ? handleUnfreeze() : setConfirmFreeze(true), danger: false },
             { icon: Pencil, label: "עריכה", action: () => router.push(`/jobs/${id}/edit`), danger: false },

@@ -11,6 +11,7 @@ import { MOCK_JOBS, MockJob } from "@/lib/mock-jobs";
 import { STORAGE_KEYS, savedJobsKey } from "@/lib/storage-keys";
 import { supabase } from "@/lib/supabase";
 import posthog from "posthog-js";
+import { shareJob } from "@/lib/share";
 
 type Filters = {
   categories: string[];
@@ -642,12 +643,7 @@ export default function HomePage() {
                     <button
                       onClick={async () => {
                         const url = `${window.location.origin}/jobs/${selectedJob.id}/view`;
-                        if (navigator.share) {
-                          await navigator.share({ title: selectedJob.title, url });
-                        } else {
-                          await navigator.clipboard.writeText(url);
-                          alert("הקישור הועתק!");
-                        }
+                        await shareJob(selectedJob.title, url);
                       }}
                       className="w-9 h-9 flex items-center justify-center rounded-full bg-cream active:bg-cream-warm shrink-0"
                     >
