@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Eye, EyeOff, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,25 +16,14 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    alert("handleLogin נקרא");
     if (!email.trim() || !password.trim()) {
       setError("יש למלא אימייל וסיסמה");
       return;
     }
     setLoading(true);
     setError("");
-    let data: any, error: any;
-    try {
-      const res = await supabase.auth.signInWithPassword({ email, password });
-      data = res.data;
-      error = res.error;
-    } catch (e: any) {
-      alert("שגיאת חיבור: " + e?.message);
-      setLoading(false);
-      return;
-    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      alert("שגיאה: " + error.message);
       setError("מייל או סיסמא שגויים");
       setLoading(false);
       return;
@@ -47,6 +37,30 @@ export default function LoginPage() {
       } catch {}
     }
     router.push("/");
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const isCapacitor = typeof (window as any).Capacitor !== "undefined";
+      const redirectTo = isCapacitor
+        ? "hevre://auth/callback"
+        : `${window.location.origin}/auth/callback`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: { prompt: "select_account" },
+          skipBrowserRedirect: isCapacitor,
+        },
+      });
+      if (error) return;
+
+      if (isCapacitor && data?.url) {
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.open({ url: data.url });
+      }
+    } catch {}
   };
 
   return (
@@ -119,38 +133,12 @@ export default function LoginPage() {
 
       <div className="flex items-center gap-3 mb-5">
         <div className="flex-1 h-px bg-divider" />
-        <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">אפשר גם דרך</span>
+        <span className="font-mono text-[11px] text-ink-3 uppercase tracking-wider">אפשל גם דרך</span>
         <div className="flex-1 h-px bg-divider" />
       </div>
 
       <button
-        onClick={async () => {
-          try {
-            const isCapacitor = typeof (window as any).Capacitor !== "undefined";
-            alert("Google נלחץ, isCapacitor=" + isCapacitor);
-            const redirectTo = isCapacitor
-              ? "hevre://auth/callback"
-              : `${window.location.origin}/auth/callback`;
-
-            const { data, error } = await supabase.auth.signInWithOAuth({
-              provider: "google",
-              options: {
-                redirectTo,
-                queryParams: { prompt: "select_account" },
-                skipBrowserRedirect: isCapacitor,
-              },
-            });
-            if (error) { alert("שגיאת OAuth: " + error.message); return; }
-            alert("data.url=" + data?.url);
-
-            if (isCapacitor && data?.url) {
-              const { Browser } = await import("@capacitor/browser");
-              await Browser.open({ url: data.url });
-            }
-          } catch (e: any) {
-            alert("שגיאה כללית: " + e?.message);
-          }
-        }}
+        onClick={handleGoogleLogin}
         className="w-full bg-paper ring-1 ring-divider rounded-2xl h-14 flex items-center justify-center gap-3 active:bg-cream transition-colors mb-6"
       >
         <svg width="22" height="22" viewBox="0 0 24 24">

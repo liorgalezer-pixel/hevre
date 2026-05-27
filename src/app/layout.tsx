@@ -3,6 +3,7 @@ import { Heebo, Frank_Ruhl_Libre, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import PostHogProvider from "@/components/PostHogProvider";
 import PostHogPageView from "@/components/PostHogPageView";
+import CapacitorDeepLinkHandler from "@/components/CapacitorDeepLinkHandler";
 import { Suspense } from "react";
 
 const heebo = Heebo({
@@ -51,6 +52,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <PostHogPageView />
           </Suspense>
+          <CapacitorDeepLinkHandler />
           {children}
         </PostHogProvider>
       </body>
