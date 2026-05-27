@@ -40,31 +40,19 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    const isCapacitor = typeof (window as any).Capacitor !== "undefined";
-    alert("Google נלחץ, cap=" + isCapacitor);
     try {
-      const redirectTo = isCapacitor
+      const redirectTo = typeof (window as any).Capacitor !== "undefined"
         ? "hevre://auth/callback"
         : `${window.location.origin}/auth/callback`;
 
-      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo,
           queryParams: { prompt: "select_account" },
-          skipBrowserRedirect: isCapacitor,
         },
       });
-      alert("oauthError=" + oauthError + " url=" + data?.url);
-      if (oauthError) return;
-
-      if (isCapacitor && data?.url) {
-        const { Browser } = await import("@capacitor/browser");
-        await Browser.open({ url: data.url });
-      }
-    } catch (e: any) {
-      alert("שגיאה: " + (e?.message || JSON.stringify(e)));
-    }
+    } catch {}
   };
 
   return (
