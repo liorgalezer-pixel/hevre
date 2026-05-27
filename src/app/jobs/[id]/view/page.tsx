@@ -148,6 +148,12 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
         job_id: id,
         category: job.categories?.[0] ?? null,
       });
+      // Notify employer (fire-and-forget)
+      fetch("/api/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: id, applicant_id: user.id }),
+      }).catch(() => {});
       setApplyOpen(false);
       setSubmitted(true);
       setAlreadyApplied(true);

@@ -8,6 +8,7 @@ import com.getcapacitor.BridgeActivity;
 import com.capacitorjs.plugins.browser.BrowserPlugin;
 import com.capacitorjs.plugins.app.AppPlugin;
 import com.capacitorjs.plugins.share.SharePlugin;
+import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 import com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth;
 
 public class MainActivity extends BridgeActivity {
@@ -28,6 +29,7 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(BrowserPlugin.class);
     registerPlugin(AppPlugin.class);
     registerPlugin(SharePlugin.class);
+    registerPlugin(PushNotificationsPlugin.class);
     registerPlugin(GoogleAuth.class);
     super.onCreate(savedInstanceState);
 

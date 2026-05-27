@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "219172194695",
+    "project_id": "hevre-362f7",
+    "storage_bucket": "hevre-362f7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219172194695:android:cf828dba5878fe83002b22",
+        "android_client_info": {
+          "package_name": "com.hevre.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYErVxmkiU45uPbRUAh1J8n1I8sXcgQSw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

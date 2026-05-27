@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function CapacitorDeepLinkHandler() {
   const router = useRouter();
@@ -26,7 +27,55 @@ export default function CapacitorDeepLinkHandler() {
         }
       });
     }).catch(() => {});
+
+    setupPushNotifications();
   }, [router]);
 
   return null;
+}
+
+async function setupPushNotifications() {
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+
+    const permStatus = await PushNotifications.checkPermissions();
+    alert("Push status: " + permStatus.receive);
+
+    if (permStatus.receive === "prompt") {
+      const result = await PushNotifications.requestPermissions();
+      alert("After request: " + result.receive);
+      if (result.receive !== "granted") return;
+    } else if (permStatus.receive !== "granted") {
+      return;
+    }
+
+    await PushNotifications.register();
+
+    PushNotifications.addListener("registration", async (token) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("profiles")
+        .update({ fcm_token: token.value })
+        .eq("id", user.id);
+    });
+
+    PushNotifications.addListener("registrationError", (err) => {
+      console.error("Push registration error:", err);
+    });
+
+    PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      console.log("Push received foreground:", notification);
+    });
+
+    PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+      const jobId = action.notification.data?.job_id;
+      if (jobId) {
+        window.location.href = `/jobs/${jobId}/view`;
+      }
+    });
+  } catch (err) {
+    console.error("Push setup error:", err);
+  }
 }
