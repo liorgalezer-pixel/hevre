@@ -40,6 +40,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    alert("Google נלחץ");
     try {
       const isCapacitor = typeof (window as any).Capacitor !== "undefined";
       const redirectTo = isCapacitor
