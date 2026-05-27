@@ -40,6 +40,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    alert("GOOGLE CLICKED");
     try {
       const isCapacitor = typeof (window as any).Capacitor !== "undefined";
       alert("isCapacitor=" + isCapacitor);
