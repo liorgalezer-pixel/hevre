@@ -41,14 +41,10 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const redirectTo = typeof (window as any).Capacitor !== "undefined"
-        ? "hevre://auth/callback"
-        : `${window.location.origin}/auth/callback`;
-
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo,
+          redirectTo: "https://hevre.vercel.app/auth/callback",
           queryParams: { prompt: "select_account" },
         },
       });
