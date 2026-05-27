@@ -79,6 +79,8 @@ export default function HomePage() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState(false);
   const [totalJobCount, setTotalJobCount] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef(0);
   const PAGE_SIZE = 20;
 
   // Drawer state
@@ -328,8 +330,21 @@ export default function HomePage() {
     });
   }, [allJobs, searchText, activeCategory, filters, rejectedJobIds]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    pullStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    const pullDistance = e.changedTouches[0].clientY - pullStartY.current;
+    if (pullDistance > 80 && window.scrollY === 0 && !refreshing) {
+      setRefreshing(true);
+      await fetchJobs(0, true);
+      setRefreshing(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-cream" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-cream" dir="rtl" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
 
       {/* Header */}
       <header className="bg-paper px-4 pt-10 pb-3 sticky top-0 z-40 border-b border-divider">
@@ -459,6 +474,12 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
+      {refreshing && (
+        <div className="flex justify-center py-3 bg-cream">
+          <div className="w-5 h-5 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
 
       {/* Category quick filters */}
       <div className="bg-paper border-b border-divider px-3 py-3">
