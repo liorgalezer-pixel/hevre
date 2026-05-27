@@ -6,7 +6,7 @@ import { WifiOff } from "lucide-react";
 async function checkOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
   try {
-    await fetch("https://hevre.vercel.app/api/ping", { method: "HEAD", cache: "no-store" });
+    await fetch("/api/ping", { method: "HEAD", cache: "no-store" });
     return true;
   } catch {
     return false;
