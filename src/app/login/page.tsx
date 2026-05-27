@@ -40,9 +40,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    alert("Google נלחץ");
+    const isCapacitor = typeof (window as any).Capacitor !== "undefined";
+    alert("Google נלחץ, cap=" + isCapacitor);
     try {
-      const isCapacitor = typeof (window as any).Capacitor !== "undefined";
       const redirectTo = isCapacitor
         ? "hevre://auth/callback"
         : `${window.location.origin}/auth/callback`;
