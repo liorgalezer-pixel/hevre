@@ -150,7 +150,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       });
       // Notify employer (fire-and-forget)
       console.log("sending notification for job:", id, "applicant:", user.id);
-      fetch("/api/notifications/send", {
+      fetch("/api/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_id: id, applicant_id: user.id }),

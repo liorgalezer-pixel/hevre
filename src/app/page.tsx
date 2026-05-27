@@ -298,7 +298,7 @@ export default function HomePage() {
     if (!error) {
       posthog.capture("application_submitted", { job_id: selectedJob.id, category: selectedJob.categories?.[0] ?? null });
       // Notify employer (fire-and-forget)
-      fetch("/api/notifications/send", {
+      fetch("/api/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_id: selectedJob.id, applicant_id: user.id }),
