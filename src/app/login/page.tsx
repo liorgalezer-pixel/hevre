@@ -55,6 +55,7 @@ export default function LoginPage() {
           skipBrowserRedirect: isCapacitor,
         },
       });
+      alert("oauthError=" + oauthError + " url=" + data?.url);
       if (oauthError) return;
 
       if (isCapacitor && data?.url) {
