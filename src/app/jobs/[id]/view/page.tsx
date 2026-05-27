@@ -141,7 +141,6 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
       answers: answers,
       about_self: aboutSelf,
     });
-    alert("insert error: " + JSON.stringify(error));
     if (!error) {
       // Ensure a view is recorded — applicant definitely saw the job
       supabase.from("job_views").upsert({ job_id: id, viewer_id: user.id }, { onConflict: "job_id,viewer_id" });

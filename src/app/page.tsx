@@ -297,6 +297,12 @@ export default function HomePage() {
     setApplying(false);
     if (!error) {
       posthog.capture("application_submitted", { job_id: selectedJob.id, category: selectedJob.categories?.[0] ?? null });
+      // Notify employer (fire-and-forget)
+      fetch("/api/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_id: selectedJob.id, applicant_id: user.id }),
+      }).catch(() => {});
       setApplySuccess(true);
       setAlreadyApplied(true);
       setAppliedJobIds(prev => new Set([...prev, selectedJob.id]));
