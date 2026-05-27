@@ -61,7 +61,9 @@ export default function LoginPage() {
         const { Browser } = await import("@capacitor/browser");
         await Browser.open({ url: data.url });
       }
-    } catch {}
+    } catch (e: any) {
+      alert("שגיאה: " + (e?.message || JSON.stringify(e)));
+    }
   };
 
   return (
