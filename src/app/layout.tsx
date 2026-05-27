@@ -4,6 +4,7 @@ import "./globals.css";
 import PostHogProvider from "@/components/PostHogProvider";
 import PostHogPageView from "@/components/PostHogPageView";
 import CapacitorDeepLinkHandler from "@/components/CapacitorDeepLinkHandler";
+import OfflineScreen from "@/components/OfflineScreen";
 import { Suspense } from "react";
 
 const heebo = Heebo({
@@ -53,6 +54,7 @@ export default function RootLayout({
             <PostHogPageView />
           </Suspense>
           <CapacitorDeepLinkHandler />
+          <OfflineScreen />
           {children}
         </PostHogProvider>
       </body>
