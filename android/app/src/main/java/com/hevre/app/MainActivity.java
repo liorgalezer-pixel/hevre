@@ -1,6 +1,10 @@
 package com.hevre.app;
 
 import android.os.Bundle;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceError;
 import com.getcapacitor.BridgeActivity;
 import com.capacitorjs.plugins.browser.BrowserPlugin;
 import com.capacitorjs.plugins.app.AppPlugin;
@@ -13,5 +17,15 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(AppPlugin.class);
     registerPlugin(GoogleAuth.class);
     super.onCreate(savedInstanceState);
+
+    WebView webView = getBridge().getWebView();
+    webView.setWebViewClient(new WebViewClient() {
+      @Override
+      public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+        if (request.isForMainFrame()) {
+          view.loadUrl("file:///android_asset/offline.html");
+        }
+      }
+    });
   }
 }
