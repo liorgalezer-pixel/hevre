@@ -22,8 +22,8 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError("");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    if (loginError) {
       setError("מייל או סיסמא שגויים");
       setLoading(false);
       return;
@@ -47,7 +47,7 @@ export default function LoginPage() {
         ? "hevre://auth/callback"
         : `${window.location.origin}/auth/callback`;
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo,
@@ -55,7 +55,7 @@ export default function LoginPage() {
           skipBrowserRedirect: isCapacitor,
         },
       });
-      if (error) return;
+      if (oauthError) return;
 
       if (isCapacitor && data?.url) {
         const { Browser } = await import("@capacitor/browser");
