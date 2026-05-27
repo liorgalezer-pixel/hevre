@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createSign } from "crypto";
+
+export const runtime = "nodejs";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,6 +97,7 @@ async function getFirebaseAccessToken(): Promise<string> {
     Buffer.from(JSON.stringify(obj)).toString("base64url");
 
   const unsigned = `${encode(header)}.${encode(payload)}`;
+  const { createSign } = await import("crypto");
   const sign = createSign("RSA-SHA256");
   sign.update(unsigned);
   const signature = sign.sign(serviceAccount.private_key, "base64url");
