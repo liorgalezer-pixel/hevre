@@ -144,7 +144,8 @@ export default function LoginPage() {
             alert("data.url=" + data?.url);
 
             if (isCapacitor && data?.url) {
-              (window as any).open(data.url, "_system");
+              const { Browser } = await import("@capacitor/browser");
+              await Browser.open({ url: data.url });
             }
           } catch (e: any) {
             alert("שגיאה כללית: " + e?.message);

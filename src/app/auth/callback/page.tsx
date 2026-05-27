@@ -9,7 +9,9 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     // סגור את הדפדפן החיצוני אם פתוח (Capacitor)
-    // no-op: using window.open(_system) instead of Browser plugin
+    if (typeof (window as any).Capacitor !== "undefined") {
+      import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => {});
+    }
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
