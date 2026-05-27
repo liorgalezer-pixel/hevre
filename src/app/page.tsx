@@ -508,13 +508,14 @@ export default function HomePage() {
         </div>
       )}
 
+      {(refreshing || jobsLoading) && !jobsError && (
+        <div className="flex justify-center py-3">
+          <div className="w-5 h-5 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
       {/* Jobs feed */}
       <main className="flex-1 px-3 py-4 pb-24 flex flex-col gap-3">
-        {refreshing && (
-          <div className="flex justify-center py-2">
-            <div className="w-5 h-5 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
         <div className="text-right">
           <h1 className="font-serif text-2xl font-bold text-ink tracking-tight">
             {activeCategory ? CATEGORIES.find(c => c.id === activeCategory)?.label : 'משרות ארה"ב'}
@@ -535,26 +536,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {jobsLoading && !jobsError && (
-          <>
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-paper rounded-2xl p-4 ring-1 ring-divider flex flex-col gap-3 animate-pulse">
-                <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
-                  <div className="w-9 h-9 rounded-full bg-cream-warm shrink-0" />
-                  <div className="flex-1 flex flex-col gap-2">
-                    <div className="h-4 bg-cream-warm rounded-lg w-2/3" />
-                    <div className="h-3 bg-cream-warm rounded-lg w-1/3" />
-                  </div>
-                  <div className="w-12 h-12 rounded-xl bg-cream-warm shrink-0" />
-                </div>
-                <div className="flex gap-2">
-                  <div className="h-6 bg-cream-warm rounded-full w-20" />
-                  <div className="h-6 bg-cream-warm rounded-full w-24" />
-                </div>
-              </div>
-            ))}
-          </>
-        )}
 
         {!jobsLoading && !jobsError && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
