@@ -475,12 +475,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {refreshing && (
-        <div className="flex justify-center py-3 bg-cream">
-          <div className="w-5 h-5 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
       {/* Category quick filters */}
       <div className="bg-paper border-b border-divider px-3 py-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-none">
@@ -516,6 +510,11 @@ export default function HomePage() {
 
       {/* Jobs feed */}
       <main className="flex-1 px-3 py-4 pb-24 flex flex-col gap-3">
+        {refreshing && (
+          <div className="flex justify-center py-2">
+            <div className="w-5 h-5 border-2 border-terracotta border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
         <div className="text-right">
           <h1 className="font-serif text-2xl font-bold text-ink tracking-tight">
             {activeCategory ? CATEGORIES.find(c => c.id === activeCategory)?.label : 'משרות ארה"ב'}
