@@ -15,14 +15,25 @@ export default function LoginPage() {
   const router = useRouter();
 
   const handleLogin = async () => {
+    alert("handleLogin נקרא");
     if (!email.trim() || !password.trim()) {
       setError("יש למלא אימייל וסיסמה");
       return;
     }
     setLoading(true);
     setError("");
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    let data: any, error: any;
+    try {
+      const res = await supabase.auth.signInWithPassword({ email, password });
+      data = res.data;
+      error = res.error;
+    } catch (e: any) {
+      alert("שגיאת חיבור: " + e?.message);
+      setLoading(false);
+      return;
+    }
     if (error) {
+      alert("שגיאה: " + error.message);
       setError("מייל או סיסמא שגויים");
       setLoading(false);
       return;
