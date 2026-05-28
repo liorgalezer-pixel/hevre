@@ -203,7 +203,7 @@ export default function MessagesPage() {
               return (
                 <div key={conv.id} className="relative overflow-hidden border-b border-divider">
                   {/* Action buttons revealed on swipe */}
-                  <div className="absolute inset-y-0 left-0 flex" style={{ direction: "ltr" }}>
+                  <div className="absolute inset-y-0 right-0 flex">
                     <button
                       onClick={(e) => { e.stopPropagation(); archiveConv(conv.id); }}
                       className="w-20 flex flex-col items-center justify-center gap-1 bg-warm-info-bg active:opacity-80"
