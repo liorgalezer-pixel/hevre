@@ -59,9 +59,7 @@ export default function HomePage() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
-  const [bellSeen, setBellSeen] = useState(() =>
-    typeof window !== "undefined" && localStorage.getItem("hevre_bell_seen") === "true"
-  );
+  const [bellSeen, setBellSeen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
   const [approvedApps, setApprovedApps] = useState<{ jobId: string; title: string; company: string }[]>([]);
@@ -373,7 +371,7 @@ export default function HomePage() {
               <MessageCircle size={24} className="text-ink" strokeWidth={1.8} />
             </button>
             <div ref={bellRef} className="relative">
-              <button onClick={() => { setBellOpen((v) => !v); setBellSeen(true); localStorage.setItem("hevre_bell_seen", "true"); }} className="relative w-11 h-11 flex items-center justify-center">
+              <button onClick={() => { setBellOpen((v) => !v); setBellSeen(true); }} className="relative w-11 h-11 flex items-center justify-center">
                 <Bell size={24} className="text-ink" strokeWidth={1.8} />
                 {!bellSeen && (approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
                   <span className="absolute top-2 right-2 w-2 h-2 bg-terracotta rounded-full" />
