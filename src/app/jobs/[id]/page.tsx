@@ -136,6 +136,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from("applications").update({ status: "approved" }).eq("id", applicant.id);
+    fetch("https://eywrpbhgvuuupyunalaq.supabase.co/functions/v1/smart-service", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "approval", recipient_id: applicant.applicant_id, job_title: job?.title ?? "" }),
+    }).catch(() => {});
     const { data: conv } = await supabase
       .from("conversations")
       .upsert(
