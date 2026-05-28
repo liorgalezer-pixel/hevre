@@ -23,6 +23,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [isEmployer, setIsEmployer] = useState(false);
   const [otherName, setOtherName] = useState("שיחה");
   const [jobTitle, setJobTitle] = useState("");
+  const [recipientId, setRecipientId] = useState<string | null>(null);
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [waPhone, setWaPhone] = useState("");
   const [waCountry, setWaCountry] = useState<"+972" | "+1">("+972");
@@ -67,6 +68,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         setJobTitle(c.jobs?.title || "משרה");
         const emp = c.employer_id === user.id;
         setIsEmployer(emp);
+        setRecipientId(emp ? c.applicant_id : c.employer_id);
         setOtherName(emp ? (c.applicant?.first_name || "מועמד") : (c.employer?.first_name || "מעסיק"));
       }
 
@@ -93,6 +95,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     setText("");
     await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: myId, content: trimmed });
     posthog.capture("chat_message_sent", { sender_type: isEmployer ? "employer" : "seeker", room_id: conversationId });
+    if (recipientId) {
+      fetch("https://eywrpbhgvuuupyunalaq.supabase.co/functions/v1/smart-service", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "chat", recipient_id: recipientId, sender_name: myFirstName || "מישהו", job_title: jobTitle }),
+      }).catch(() => {});
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
