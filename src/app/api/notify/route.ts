@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   const h = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
 
   const [jobRes, applicantRes] = await Promise.all([
-    fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job_id}&select=title,employer_id&limit=1`, { headers: h }),
+    fetch(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job_id}&select=title,created_by&limit=1`, { headers: h }),
     fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${applicant_id}&select=full_name&limit=1`, { headers: h }),
   ]);
 
