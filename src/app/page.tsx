@@ -401,37 +401,83 @@ export default function HomePage() {
                     <p className="font-serif text-base font-semibold text-ink">התראות</p>
                     <div className="w-7" />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
                     {newApplicants.map((n) => (
-                      <button key={`${n.jobId}-${n.applicantName}`} onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}`); }}
-                        className="bg-warm-info-bg ring-1 ring-divider rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5 active:bg-cream">
-                        <span className="text-warm-info-text font-bold text-xs">👤 מועמד חדש!</span>
-                        <span className="text-ink font-medium text-sm">{n.applicantName}</span>
-                        <span className="text-ink-3 text-xs">הגיש מועמדות ל: {n.jobTitle}</span>
-                      </button>
+                      <div key={`${n.jobId}-${n.applicantName}`} className="relative">
+                        <button onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}`); }}
+                          className="w-full bg-warm-info-bg ring-1 ring-divider rounded-xl px-3 pl-9 py-2.5 text-right flex flex-col gap-0.5 active:bg-cream">
+                          <span className="text-warm-info-text font-bold text-xs">👤 מועמד חדש!</span>
+                          <span className="text-ink font-medium text-sm">{n.applicantName}</span>
+                          <span className="text-ink-3 text-xs">הגיש מועמדות ל: {n.jobTitle}</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setNewApplicants(prev => prev.filter(x => !(x.jobId === n.jobId && x.applicantName === n.applicantName))); }}
+                          className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
+                        >
+                          <Trash2 size={13} className="text-ink-3" strokeWidth={1.8} />
+                        </button>
+                      </div>
                     ))}
                     {approvedApps.map((app) => (
-                      <button key={app.jobId} onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
-                        className="bg-warm-success-bg ring-1 ring-warm-success-border rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5">
-                        <span className="text-warm-success font-bold text-xs">✓ מועמדות אושרה!</span>
-                        <span className="text-ink font-medium text-sm">{app.title}</span>
-                        <span className="text-ink-3 text-xs">{app.company}</span>
-                      </button>
+                      <div key={app.jobId} className="relative">
+                        <button onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
+                          className="w-full bg-warm-success-bg ring-1 ring-warm-success-border rounded-xl px-3 pl-9 py-2.5 text-right flex flex-col gap-0.5">
+                          <span className="text-warm-success font-bold text-xs">✓ מועמדות אושרה!</span>
+                          <span className="text-ink font-medium text-sm">{app.title}</span>
+                          <span className="text-ink-3 text-xs">{app.company}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const existing: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
+                            localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existing, app.jobId])]));
+                            setApprovedApps(prev => prev.filter(a => a.jobId !== app.jobId));
+                          }}
+                          className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
+                        >
+                          <Trash2 size={13} className="text-ink-3" strokeWidth={1.8} />
+                        </button>
+                      </div>
                     ))}
                     {rejectedApps.map((app) => (
-                      <button key={app.jobId} onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
-                        className="bg-warm-danger-bg ring-1 ring-warm-danger-border rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5">
-                        <span className="text-warm-danger font-bold text-xs">✗ מועמדות נדחתה</span>
-                        <span className="text-ink font-medium text-sm">{app.title}</span>
-                      </button>
+                      <div key={app.jobId} className="relative">
+                        <button onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
+                          className="w-full bg-warm-danger-bg ring-1 ring-warm-danger-border rounded-xl px-3 pl-9 py-2.5 text-right flex flex-col gap-0.5">
+                          <span className="text-warm-danger font-bold text-xs">✗ מועמדות נדחתה</span>
+                          <span className="text-ink font-medium text-sm">{app.title}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const existing: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
+                            localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existing, app.jobId])]));
+                            setRejectedApps(prev => prev.filter(a => a.jobId !== app.jobId));
+                          }}
+                          className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
+                        >
+                          <Trash2 size={13} className="text-ink-3" strokeWidth={1.8} />
+                        </button>
+                      </div>
                     ))}
                     {alertNotifs.map((n) => (
-                      <button key={n.id} onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}/view`); }}
-                        className="bg-warm-purple-bg ring-1 ring-divider rounded-xl px-3 py-2.5 text-right flex flex-col gap-0.5">
-                        <span className="text-warm-purple font-bold text-xs">🔔 משרה חדשה מתאימה!</span>
-                        <span className="text-ink font-medium text-sm">{n.jobTitle}</span>
-                        <span className="text-ink-3 text-xs">התראה: {n.alertName}</span>
-                      </button>
+                      <div key={n.id} className="relative">
+                        <button onClick={() => { setBellOpen(false); router.push(`/jobs/${n.jobId}/view`); }}
+                          className="w-full bg-warm-purple-bg ring-1 ring-divider rounded-xl px-3 pl-9 py-2.5 text-right flex flex-col gap-0.5">
+                          <span className="text-warm-purple font-bold text-xs">🔔 משרה חדשה מתאימה!</span>
+                          <span className="text-ink font-medium text-sm">{n.jobTitle}</span>
+                          <span className="text-ink-3 text-xs">התראה: {n.alertName}</span>
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await supabase.from("alert_notifications").update({ read: true }).eq("id", n.id);
+                            setAlertNotifs(prev => prev.filter(a => a.id !== n.id));
+                          }}
+                          className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
+                        >
+                          <Trash2 size={13} className="text-ink-3" strokeWidth={1.8} />
+                        </button>
+                      </div>
                     ))}
                     {approvedApps.length === 0 && rejectedApps.length === 0 && newApplicants.length === 0 && alertNotifs.length === 0 && (
                       <p className="bg-cream rounded-xl px-3 py-2.5 text-ink-3 text-sm">אין הודעות חדשות כרגע</p>
