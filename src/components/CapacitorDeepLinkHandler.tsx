@@ -70,7 +70,7 @@ async function setupPushNotifications() {
     PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
       const jobId = action.notification.data?.job_id;
       if (jobId) {
-        window.location.href = `/my-jobs`;
+        window.location.href = `/jobs/${jobId}`;
       }
     });
   } catch (err) {
