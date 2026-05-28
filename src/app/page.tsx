@@ -59,13 +59,15 @@ export default function HomePage() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [bellOpen, setBellOpen] = useState(false);
-  const [bellSeen, setBellSeen] = useState(false);
+  const [bellSeen, setBellSeen] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("hevre_bell_seen") === "true"
+  );
   const bellRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
   const [approvedApps, setApprovedApps] = useState<{ jobId: string; title: string; company: string }[]>([]);
   const [rejectedApps, setRejectedApps] = useState<{ jobId: string; title: string }[]>([]);
   const [rejectedJobIds, setRejectedJobIds] = useState<Set<string>>(new Set());
-  const [newApplicants, setNewApplicants] = useState<{ jobId: string; jobTitle: string; applicantName: string }[]>([]);
+  const [newApplicants, setNewApplicants] = useState<{ jobId: string; applicantId: string; jobTitle: string; applicantName: string }[]>([]);
   const [alertNotifs, setAlertNotifs] = useState<{ id: string; jobId: string; jobTitle: string; alertName: string }[]>([]);
   const [userJobs, setUserJobs] = useState<(MockJob & { created_at?: string })[]>([]);
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -121,6 +123,7 @@ export default function HomePage() {
         setSavedIds(savedJobs.map(j => j.id));
 
         const dismissedIds: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
+        const dismissedApplicants: string[] = JSON.parse(localStorage.getItem("hevre_dismissed_applicants") || "[]");
         const clearedAt = localStorage.getItem("hevre_notif_cleared_at");
 
         // Fetch all data in parallel
@@ -178,11 +181,14 @@ export default function HomePage() {
           if (clearedAt) pendingQuery = pendingQuery.gt("created_at", clearedAt);
           const { data: pendingApps } = await pendingQuery;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const newApps = (pendingApps || []).map((a: any) => ({
-            jobId: a.job_id as string,
-            jobTitle: myJobs.find((j: { id: string }) => j.id === a.job_id)?.title || "",
-            applicantName: a.profiles?.first_name || "מועמד",
-          }));
+          const newApps = (pendingApps || [])
+            .filter((a: any) => !dismissedApplicants.includes(`${a.job_id}:${a.applicant_id}`))
+            .map((a: any) => ({
+              jobId: a.job_id as string,
+              applicantId: a.applicant_id as string,
+              jobTitle: myJobs.find((j: { id: string }) => j.id === a.job_id)?.title || "",
+              applicantName: a.profiles?.first_name || "מועמד",
+            }));
           setNewApplicants(newApps);
         }
       }
@@ -367,7 +373,7 @@ export default function HomePage() {
               <MessageCircle size={24} className="text-ink" strokeWidth={1.8} />
             </button>
             <div ref={bellRef} className="relative">
-              <button onClick={() => { setBellOpen((v) => !v); setBellSeen(true); }} className="relative w-11 h-11 flex items-center justify-center">
+              <button onClick={() => { setBellOpen((v) => !v); setBellSeen(true); localStorage.setItem("hevre_bell_seen", "true"); }} className="relative w-11 h-11 flex items-center justify-center">
                 <Bell size={24} className="text-ink" strokeWidth={1.8} />
                 {!bellSeen && (approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
                   <span className="absolute top-2 right-2 w-2 h-2 bg-terracotta rounded-full" />
@@ -378,7 +384,6 @@ export default function HomePage() {
                   <div className="flex items-center justify-between mb-1" style={{ direction: "ltr" }}>
                     <button
                       onClick={async () => {
-                        // Dismiss current approved/rejected notifications by job ID
                         const existingDismissed: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
                         const newDismissed = [...new Set([
                           ...existingDismissed,
@@ -386,6 +391,10 @@ export default function HomePage() {
                           ...rejectedApps.map(a => a.jobId),
                         ])];
                         localStorage.setItem("hevre_notif_dismissed", JSON.stringify(newDismissed));
+                        localStorage.setItem("hevre_notif_cleared_at", new Date().toISOString());
+                        const existingDismissedApplicants: string[] = JSON.parse(localStorage.getItem("hevre_dismissed_applicants") || "[]");
+                        const newDismissedApplicants = [...new Set([...existingDismissedApplicants, ...newApplicants.map(n => `${n.jobId}:${n.applicantId}`)])];
+                        localStorage.setItem("hevre_dismissed_applicants", JSON.stringify(newDismissedApplicants));
                         setNewApplicants([]);
                         setApprovedApps([]);
                         setRejectedApps([]);
@@ -411,7 +420,12 @@ export default function HomePage() {
                           <span className="text-ink-3 text-xs">הגיש מועמדות ל: {n.jobTitle}</span>
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setNewApplicants(prev => prev.filter(x => !(x.jobId === n.jobId && x.applicantName === n.applicantName))); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const existing: string[] = JSON.parse(localStorage.getItem("hevre_dismissed_applicants") || "[]");
+                            localStorage.setItem("hevre_dismissed_applicants", JSON.stringify([...new Set([...existing, `${n.jobId}:${n.applicantId}`])]));
+                            setNewApplicants(prev => prev.filter(x => !(x.jobId === n.jobId && x.applicantId === n.applicantId)));
+                          }}
                           className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
                         >
                           <Trash2 size={13} className="text-ink-3" strokeWidth={1.8} />
