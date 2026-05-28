@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, PlusCircle, LogOut, UserPen, X } from "lucide-react";
+import { Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, PlusCircle, LogOut, UserPen, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,8 @@ export default function ProfilePage() {
   const [photoSheet, setPhotoSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { showLimitModal, setShowLimitModal, handlePostClick } = usePostLimit();
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -238,12 +240,78 @@ export default function ProfilePage() {
                 <LogOut size={22} className="text-warm-danger shrink-0" strokeWidth={1.6} />
               </button>
             )}
+
+            {/* Delete Account */}
+            {isLoggedIn && (
+              <button
+                onClick={() => setDeleteModal(true)}
+                className="flex items-center justify-between px-4 py-4 w-full active:bg-warm-danger-bg border-t border-divider"
+                style={{ direction: "ltr" }}
+              >
+                <ChevronLeft size={18} className="text-ink-3 shrink-0" />
+                <span className="flex-1 text-right text-sm mr-3 text-ink-3">מחיקת חשבון</span>
+                <Trash2 size={20} className="text-ink-3 shrink-0" strokeWidth={1.6} />
+              </button>
+            )}
           </div>
         </div>
 
         {/* App version */}
         <p className="text-center font-mono text-[10px] text-ink-3 mt-6 mb-2 tracking-wider uppercase">גרסת אפליקציה v.1.0.0</p>
       </main>
+
+      {/* Delete Account Modal */}
+      {deleteModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => !deleting && setDeleteModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" dir="rtl">
+            <div className="bg-paper rounded-3xl w-full max-w-sm p-6 flex flex-col gap-5 shadow-2xl">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-16 h-16 rounded-full bg-warm-danger-bg flex items-center justify-center">
+                  <Trash2 size={28} className="text-warm-danger" strokeWidth={1.6} />
+                </div>
+                <h2 className="font-serif text-xl font-bold text-ink tracking-tight">מחיקת חשבון</h2>
+                <p className="text-sm text-ink-2 leading-relaxed">
+                  כל הנתונים שלך — פרופיל, משרות, מועמדויות, צ׳אטים — יימחקו לצמיתות. <br />
+                  <span className="text-warm-danger font-semibold">לא ניתן לשחזר את החשבון לאחר המחיקה.</span>
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteModal(false)}
+                  disabled={deleting}
+                  className="flex-1 h-12 rounded-2xl bg-cream font-semibold text-sm text-ink active:opacity-80 disabled:opacity-50"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      await fetch("https://eywrpbhgvuuupyunalaq.supabase.co/functions/v1/smart-service", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          "Authorization": `Bearer ${session?.access_token}`,
+                        },
+                        body: JSON.stringify({ type: "delete_account" }),
+                      });
+                    } finally {
+                      await supabase.auth.signOut();
+                      window.location.href = "/";
+                    }
+                  }}
+                  disabled={deleting}
+                  className="flex-1 h-12 rounded-2xl bg-warm-danger text-white font-semibold text-sm active:opacity-80 disabled:opacity-50 flex items-center justify-center"
+                >
+                  {deleting ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "מחק חשבון"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <BottomNav />
 
