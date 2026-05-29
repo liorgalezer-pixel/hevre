@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
       const { jobId, tier, userId } = session.metadata;
       const boostedUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      // Update job boosted_until
+      // Update job boosted_until + boost_tier
       await supabaseAdmin
         .from("jobs")
-        .update({ boosted_until: boostedUntil })
+        .update({ boosted_until: boostedUntil, boost_tier: tier })
         .eq("id", jobId);
 
       // Record the boost

@@ -203,11 +203,13 @@ export default function HomePage() {
         .then(({ count }) => { if (count !== null) setTotalJobCount(count); });
     } else setLoadingMore(true);
     const { data, error } = await supabase.from("jobs")
-      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at")
+      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at, boosted_until, boost_tier")
       .eq("active", true)
       .eq("frozen", false)
+      .order("boosted_until", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    const now = new Date();
     const postedJobs = (data || []).map(j => ({
       id: j.id,
       title: j.title,
@@ -225,6 +227,8 @@ export default function HomePage() {
       requirements: j.requirements || [],
       questions: [j.q1, j.q2, j.q3].filter(Boolean),
       created_at: j.created_at,
+      isFeatured: j.boost_tier === "featured" && j.boosted_until && new Date(j.boosted_until) > now,
+      isBoosted: j.boost_tier === "bump" && j.boosted_until && new Date(j.boosted_until) > now,
     }));
     if (error) { setJobsError(true); setJobsLoading(false); return; }
     setUserJobs(prev => reset ? postedJobs : [...prev, ...postedJobs]);
@@ -612,12 +616,34 @@ export default function HomePage() {
         {!jobsLoading && !jobsError && filtered.map((job) => {
           const isSaved = savedIds.includes(job.id);
           const isApplied = appliedJobIds.has(job.id);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const isFeatured = (job as any).isFeatured;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const isBoosted = (job as any).isBoosted;
           return (
             <div
               key={job.id}
               onClick={() => openDrawer(job)}
-              className="bg-paper rounded-2xl p-4 ring-1 ring-divider flex flex-col gap-3 text-right w-full active:scale-[0.99] transition-transform cursor-pointer"
+              className={`rounded-2xl p-4 flex flex-col gap-3 text-right w-full active:scale-[0.99] transition-transform cursor-pointer ${
+                isFeatured
+                  ? "bg-[#FFF8F0] ring-2 ring-terracotta shadow-lg shadow-terracotta/20"
+                  : "bg-paper ring-1 ring-divider"
+              }`}
             >
+              {/* Featured badge */}
+              {isFeatured && (
+                <div className="flex items-center gap-1.5 -mb-1">
+                  <span className="text-xs font-bold text-terracotta tracking-wide">✦ גיוס מהיר</span>
+                </div>
+              )}
+
+              {/* Bump badge */}
+              {isBoosted && !isFeatured && (
+                <div className="flex items-center gap-1 -mb-1">
+                  <span className="text-[10px] font-semibold text-ink-3 tracking-wide">✦ ממומן</span>
+                </div>
+              )}
+
               {/* Top row */}
               <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
                 <button
