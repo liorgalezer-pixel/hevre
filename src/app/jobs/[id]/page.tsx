@@ -388,7 +388,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       {/* Upgrade button */}
       <div className="fixed bottom-16 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
         <button
-          onClick={() => router.push("/upgrade")}
+          onClick={() => router.push(`/upgrade?job=${id}`)}
           className="w-full h-14 bg-terracotta text-cream font-serif font-semibold text-lg rounded-2xl active:opacity-90 transition-opacity"
         >
           שדרוג מודעה ✦
