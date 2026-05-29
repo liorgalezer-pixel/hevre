@@ -1,13 +1,19 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import posthog from "posthog-js";
 
 function UpgradeSuccessContent() {
   const router = useRouter();
   const params = useSearchParams();
   const tier = params.get("tier");
+  const jobId = params.get("job");
+
+  useEffect(() => {
+    posthog.capture("upgrade_purchase_completed", { job_id: jobId, plan: tier });
+  }, [jobId, tier]);
 
   return (
     <div className="flex flex-col min-h-screen bg-cream items-center justify-center px-6 gap-6" dir="rtl">

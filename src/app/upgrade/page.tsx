@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { X, CheckCircle2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import posthog from "posthog-js";
 
 const PLANS = [
   {
@@ -50,6 +51,7 @@ function UpgradeContent() {
 
   useEffect(() => {
     if (!jobId) router.replace("/my-jobs");
+    else posthog.capture("upgrade_page_viewed", { job_id: jobId });
   }, [jobId, router]);
 
   useEffect(() => {
@@ -65,6 +67,8 @@ function UpgradeContent() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
+
+    posthog.capture("upgrade_checkout_started", { job_id: jobId, plan: selected });
 
     const res = await fetch("/api/stripe/create-boost-checkout", {
       method: "POST",
@@ -107,7 +111,7 @@ function UpgradeContent() {
           return (
             <button
               key={plan.id}
-              onClick={() => setSelected(plan.id)}
+              onClick={() => { setSelected(plan.id); posthog.capture("upgrade_plan_selected", { job_id: jobId, plan: plan.id }); }}
               className={`w-full rounded-3xl overflow-hidden transition-all text-right ring-2 ${
                 isSelected ? "ring-terracotta shadow-lg" : "ring-divider"
               }`}

@@ -17,6 +17,8 @@ type Job = {
   logoPreview: string | null;
   active: boolean;
   frozen?: boolean;
+  boostTier: string | null;
+  boostedUntil: string | null;
 };
 
 export default function MyJobsPage() {
@@ -39,7 +41,7 @@ export default function MyJobsPage() {
       setIsLoggedIn(true);
       const { data } = await supabase
         .from("jobs")
-        .select("id, title, salary, company_address, categories, logo_url, active, frozen")
+        .select("id, title, salary, company_address, categories, logo_url, active, frozen, boost_tier, boosted_until")
         .eq("created_by", user.id)
         .order("created_at", { ascending: false });
       const stored = (data || []).map(j => ({
@@ -51,6 +53,8 @@ export default function MyJobsPage() {
         logoPreview: j.logo_url || null,
         active: j.active,
         frozen: j.frozen,
+        boostTier: j.boost_tier || null,
+        boostedUntil: j.boosted_until || null,
       }));
       setJobs(stored);
       if (stored.length === 0) setShowEmptyModal(true);
@@ -182,8 +186,13 @@ export default function MyJobsPage() {
         )}
 
         {/* Job cards */}
-        {jobs.map((job) => (
-          <div key={job.id} className="bg-paper rounded-2xl p-5 shadow-sm flex flex-col gap-3">
+        {jobs.map((job) => {
+          const now = new Date();
+          const isActiveBoosted = !!job.boostedUntil && new Date(job.boostedUntil) > now;
+          const isFeatured = isActiveBoosted && job.boostTier === "featured";
+          const isBump = isActiveBoosted && job.boostTier === "bump";
+          return (
+          <div key={job.id} className={`rounded-2xl p-5 shadow-sm flex flex-col gap-3 ${isFeatured ? "bg-[#FFF8F0] ring-2 ring-terracotta" : "bg-paper"}`}>
 
             {/* Top row: preview button (left) + logo (right) */}
             <div className="flex items-start justify-between gap-3" style={{ direction: "ltr" }}>
@@ -223,9 +232,19 @@ export default function MyJobsPage() {
                 <span className={`w-2 h-2 rounded-full inline-block ${job.frozen ? "bg-warm-danger" : "bg-warm-success"}`} />
                 {job.frozen ? "קפוא" : "פעילה"}
               </span>
-              <span className="font-mono text-[11px] text-ink-2 ring-1 ring-divider rounded-lg px-3 py-1 uppercase tracking-wider">
-                מודעה בסיסית
-              </span>
+              {isFeatured ? (
+                <span className="font-mono text-[11px] text-terracotta ring-1 ring-terracotta bg-[#FFF0E6] rounded-lg px-3 py-1 uppercase tracking-wider font-bold">
+                  ✦ גיוס מהיר
+                </span>
+              ) : isBump ? (
+                <span className="font-mono text-[11px] text-ink-2 ring-1 ring-divider rounded-lg px-3 py-1 uppercase tracking-wider">
+                  ✦ בוסט
+                </span>
+              ) : (
+                <span className="font-mono text-[11px] text-ink-2 ring-1 ring-divider rounded-lg px-3 py-1 uppercase tracking-wider">
+                  מודעה בסיסית
+                </span>
+              )}
             </div>
 
             {/* CTA */}
@@ -236,7 +255,8 @@ export default function MyJobsPage() {
               צפה במשרה
             </Link>
           </div>
-        ))}
+          );
+        })}
 
       </main>
 
