@@ -52,6 +52,12 @@ function UpgradeContent() {
     if (!jobId) router.replace("/my-jobs");
   }, [jobId, router]);
 
+  useEffect(() => {
+    const onFocus = () => setLoading(false);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   const handlePurchase = async () => {
     if (!selected || !jobId) return;
     setLoading(true);
