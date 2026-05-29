@@ -87,7 +87,12 @@ function UpgradeContent() {
       return;
     }
 
-    window.location.href = data.url;
+    if (typeof (window as any).Capacitor !== "undefined") {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: data.url });
+    } else {
+      window.location.href = data.url;
+    }
   };
 
   return (
