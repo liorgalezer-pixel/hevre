@@ -24,6 +24,10 @@ export default function CapacitorDeepLinkHandler() {
         if (url.startsWith("hevre://auth/callback")) {
           import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => {});
           router.replace("/auth/callback");
+        } else if (url.startsWith("hevre://upgrade/success")) {
+          import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => {});
+          const p = new URL(url).searchParams;
+          router.replace(`/upgrade/success?job=${p.get("job")}&tier=${p.get("tier")}`);
         }
       });
     }).catch(() => {});

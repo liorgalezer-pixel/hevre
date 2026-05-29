@@ -13,6 +13,8 @@ function UpgradeSuccessContent() {
 
   useEffect(() => {
     posthog.capture("upgrade_purchase_completed", { job_id: jobId, plan: tier });
+    // Redirect back to native app via deep link
+    window.location.href = `hevre://upgrade/success?job=${jobId}&tier=${tier}`;
   }, [jobId, tier]);
 
   return (
