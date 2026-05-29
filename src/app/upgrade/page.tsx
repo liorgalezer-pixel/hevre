@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 const PLANS = [
   {
     id: "featured",
-    name: "מסלול משודרג פלוס",
+    name: 'מסלול "גיוס מהיר"',
     price: "$25",
     period: "ל-7 ימים",
     badge: "הכי פופולרי",
@@ -23,7 +23,7 @@ const PLANS = [
   },
   {
     id: "bump",
-    name: "הקפצה אוטומטית בלבד",
+    name: 'מסלול "בוסט"',
     price: "$17",
     period: "ל-7 ימים",
     badge: null,
