@@ -30,6 +30,8 @@ type Job = {
   q1?: string;
   q2?: string;
   q3?: string;
+  boosted_until?: string | null;
+  boost_tier?: string | null;
 };
 
 type Applicant = {
