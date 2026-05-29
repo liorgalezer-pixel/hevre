@@ -232,13 +232,19 @@ export default function MyJobsPage() {
                 <span className={`w-2 h-2 rounded-full inline-block ${job.frozen ? "bg-warm-danger" : "bg-warm-success"}`} />
                 {job.frozen ? "קפוא" : "פעילה"}
               </span>
-              {isFeatured ? (
-                <span className="font-mono text-[11px] text-terracotta ring-1 ring-terracotta bg-[#FFF0E6] rounded-lg px-3 py-1 uppercase tracking-wider font-bold">
-                  ✦ גיוס מהיר
-                </span>
-              ) : isBump ? (
-                <span className="font-mono text-[11px] text-ink-2 ring-1 ring-divider rounded-lg px-3 py-1 uppercase tracking-wider">
-                  ✦ בוסט
+              {isActiveBoosted ? (
+                <span className="font-mono text-[11px] text-terracotta ring-1 ring-terracotta bg-[#FFF0E6] rounded-lg px-3 py-1 font-bold flex items-center gap-1">
+                  ✦ {isFeatured ? "גיוס מהיר" : "בוסט"}
+                  {" · "}
+                  {(() => {
+                    const diff = new Date(job.boostedUntil!).getTime() - Date.now();
+                    const hours = Math.floor(diff / 3600000);
+                    if (hours < 24) {
+                      const mins = Math.floor((diff % 3600000) / 60000);
+                      return `${hours}:${String(mins).padStart(2, "0")} שע׳`;
+                    }
+                    return `${Math.floor(diff / 86400000)} ימים`;
+                  })()}
                 </span>
               ) : (
                 <span className="font-mono text-[11px] text-ink-2 ring-1 ring-divider rounded-lg px-3 py-1 uppercase tracking-wider">

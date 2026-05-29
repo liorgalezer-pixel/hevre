@@ -633,7 +633,7 @@ export default function HomePage() {
               {/* Featured badge */}
               {isFeatured && (
                 <div className="flex items-center gap-1.5 -mb-1">
-                  <span className="text-xs font-bold text-terracotta tracking-wide">✦ גיוס מהיר</span>
+                  <span className="text-xs font-bold text-terracotta tracking-wide">✦ מודעה אטרקטיבית</span>
                 </div>
               )}
 

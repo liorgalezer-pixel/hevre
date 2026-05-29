@@ -55,9 +55,13 @@ function UpgradeContent() {
   }, [jobId, router]);
 
   useEffect(() => {
-    const onFocus = () => setLoading(false);
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    const reset = () => setLoading(false);
+    window.addEventListener("focus", reset);
+    document.addEventListener("visibilitychange", reset);
+    return () => {
+      window.removeEventListener("focus", reset);
+      document.removeEventListener("visibilitychange", reset);
+    };
   }, []);
 
   const handlePurchase = async () => {

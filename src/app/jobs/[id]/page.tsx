@@ -208,12 +208,28 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* Status tags */}
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2 justify-end flex-wrap">
           <span className="flex items-center gap-1.5 text-xs font-semibold text-cream bg-ink rounded-lg px-3 py-1.5">
             <span className={`w-2 h-2 rounded-full inline-block ${frozen ? "bg-warm-danger" : "bg-warm-success"}`} />
             {frozen ? "קפוא" : "פעיל"}
           </span>
-          <span className="text-xs font-semibold text-ink-2 bg-cream-warm ring-1 ring-divider rounded-lg px-3 py-1.5">מודעה בסיסית</span>
+          {job.boosted_until && new Date(job.boosted_until) > new Date() ? (
+            <span className="flex items-center gap-1.5 text-xs font-bold text-terracotta bg-[#FFF0E6] ring-1 ring-terracotta rounded-lg px-3 py-1.5">
+              ✦ {job.boost_tier === "featured" ? "גיוס מהיר" : "בוסט"}
+              {" · "}
+              {(() => {
+                const diff = new Date(job.boosted_until).getTime() - Date.now();
+                const hours = Math.floor(diff / 3600000);
+                if (hours < 24) {
+                  const mins = Math.floor((diff % 3600000) / 60000);
+                  return `${hours}:${String(mins).padStart(2, "0")} שע׳`;
+                }
+                return `${Math.floor(diff / 86400000)} ימים`;
+              })()}
+            </span>
+          ) : (
+            <span className="text-xs font-semibold text-ink-2 bg-cream-warm ring-1 ring-divider rounded-lg px-3 py-1.5">מודעה בסיסית</span>
+          )}
         </div>
 
         {/* Details */}
