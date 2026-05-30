@@ -92,7 +92,8 @@ export default function MyJobsPage() {
   }, []);
 
   const openPreview = async (job: Job) => {
-    const { data } = await supabase.from("jobs").select("*").eq("id", job.id).single();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await supabase.from("jobs").select("*").eq("id", job.id).single() as { data: any };
     if (!data) return;
     setPreviewJob({
       ...job,
@@ -103,7 +104,7 @@ export default function MyJobsPage() {
       endTime: data.end_time || "",
       car: !!data.car, license: !!data.license,
       housing: !!data.housing, weekend: !!data.weekend,
-      q1: data.q1, q2: data.q2, q3: data.q3,
+      q1: data.q1 || undefined, q2: data.q2 || undefined, q3: data.q3 || undefined,
     });
     setDrawerOpen(true);
   };
@@ -337,11 +338,11 @@ export default function MyJobsPage() {
                 )}
 
                 {/* Questions */}
-                {[previewJob.q1, previewJob.q2, previewJob.q3].filter(Boolean).length > 0 && (
+                {[previewJob.q1, previewJob.q2, previewJob.q3].filter((q): q is string => !!q).length > 0 && (
                   <div className="mb-5">
                     <h3 className="font-serif text-base font-semibold text-ink mb-3 tracking-tight">שאלות המעסיק</h3>
                     <div className="flex flex-col gap-3">
-                      {[previewJob.q1, previewJob.q2, previewJob.q3].filter(Boolean).map((q, i) => (
+                      {[previewJob.q1, previewJob.q2, previewJob.q3].filter((q): q is string => !!q).map((q, i) => (
                         <div key={i}>
                           <label className="text-sm text-ink font-medium block mb-1">
                             <span className="font-mono text-[10px] text-terracotta font-bold ml-1.5">0{i + 1}</span>{q}
