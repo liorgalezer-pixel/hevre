@@ -956,8 +956,10 @@ export default function HomePage() {
                   const now = new Date();
                   const until = new Date(now.getTime() + 48 * 60 * 60 * 1000);
                   if (selectedJob && u) {
-                    await supabase.from("application_cooldowns").delete().eq("applicant_id", u.id).eq("job_id", selectedJob.id);
-                    await supabase.from("application_cooldowns").insert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() });
+                    const delRes = await supabase.from("application_cooldowns").delete().eq("applicant_id", u.id).eq("job_id", selectedJob.id);
+                    console.log("cooldown DELETE:", delRes.error);
+                    const insRes = await supabase.from("application_cooldowns").insert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() });
+                    console.log("cooldown INSERT:", insRes.error, "data:", insRes.data);
                   }
                   setAlreadyApplied(false);
                   setDrawerCooldownUntil(until);
