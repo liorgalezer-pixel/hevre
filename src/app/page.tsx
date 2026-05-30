@@ -297,6 +297,15 @@ export default function HomePage() {
     setIsOwnJob(false);
     setDrawerCooldownUntil(null);
     setAnswers(job.questions?.length ? new Array(job.questions.length).fill("") : []);
+
+    // Check localStorage cooldown immediately (no network needed)
+    const lsKey = `cooldown_${job.id}`;
+    const lsCooldown = localStorage.getItem(lsKey);
+    if (lsCooldown) {
+      const until = new Date(parseInt(lsCooldown));
+      if (until > new Date()) setDrawerCooldownUntil(until);
+    }
+
     setDrawerOpen(true);
     posthog.capture("job_viewed", { job_id: job.id, category: job.categories?.[0] ?? null, neighborhood: job.location ?? null });
 
@@ -304,20 +313,11 @@ export default function HomePage() {
     if (user) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((job as any).created_by === user.id) { setIsOwnJob(true); return; }
-      const [{ data }, { data: cooldown }] = await Promise.all([
-        supabase.from("applications").select("id, status").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle(),
-        supabase.from("application_cooldowns").select("cancelled_at").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle(),
-      ]);
+      const { data } = await supabase.from("applications").select("id, status").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle();
       if (data) {
         setAlreadyApplied(true);
         setApplicationId(data.id);
         setApplicationStatus(data.status);
-      }
-      console.log("cooldown fetch result:", cooldown);
-      if (cooldown) {
-        const until = new Date(new Date(cooldown.cancelled_at).getTime() + 48 * 60 * 60 * 1000);
-        console.log("cooldown until:", until, "now:", new Date(), "active:", until > new Date());
-        if (until > new Date()) setDrawerCooldownUntil(until);
       }
     }
   };
@@ -955,11 +955,12 @@ export default function HomePage() {
                   await supabase.from("applications").delete().eq("id", applicationId).eq("applicant_id", u?.id!);
                   const now = new Date();
                   const until = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-                  if (selectedJob && u) {
-                    const delRes = await supabase.from("application_cooldowns").delete().eq("applicant_id", u.id).eq("job_id", selectedJob.id);
-                    console.log("cooldown DELETE:", delRes.error);
-                    const insRes = await supabase.from("application_cooldowns").insert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() });
-                    console.log("cooldown INSERT:", insRes.error, "data:", insRes.data);
+                  if (selectedJob) {
+                    localStorage.setItem(`cooldown_${selectedJob.id}`, until.getTime().toString());
+                    if (u) {
+                      await supabase.from("application_cooldowns").delete().eq("applicant_id", u.id).eq("job_id", selectedJob.id);
+                      await supabase.from("application_cooldowns").insert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() });
+                    }
                   }
                   setAlreadyApplied(false);
                   setDrawerCooldownUntil(until);
