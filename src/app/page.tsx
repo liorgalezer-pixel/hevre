@@ -223,7 +223,8 @@ export default function HomePage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.rpc as any)("get_sorted_jobs", { p_page: page, p_page_size: PAGE_SIZE });
     const now = new Date();
-    const postedJobs = (data || []).map(j => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const postedJobs = (data || []).map((j: any) => ({
       id: j.id,
       title: j.title,
       company: j.company_name || j.company_address || "חברה",
