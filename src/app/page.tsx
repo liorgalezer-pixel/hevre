@@ -313,8 +313,10 @@ export default function HomePage() {
         setApplicationId(data.id);
         setApplicationStatus(data.status);
       }
+      console.log("cooldown fetch result:", cooldown);
       if (cooldown) {
         const until = new Date(new Date(cooldown.cancelled_at).getTime() + 48 * 60 * 60 * 1000);
+        console.log("cooldown until:", until, "now:", new Date(), "active:", until > new Date());
         if (until > new Date()) setDrawerCooldownUntil(until);
       }
     }
