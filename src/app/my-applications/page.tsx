@@ -79,7 +79,7 @@ export default function MyApplicationsPage() {
   const handleCancel = async () => {
     if (!cancelTarget || !userId) return;
     setCancelling(true);
-    await supabase.from("applications").update({ status: "cancelled" }).eq("id", cancelTarget.id);
+    await supabase.from("applications").delete().eq("id", cancelTarget.id);
     if (cancelTarget.conversationId) {
       const closingMsg = `🚫 הצאט נסגר עקב ביטול מועמדות למשרת "${cancelTarget.title}"`;
       await supabase.from("messages").insert({ conversation_id: cancelTarget.conversationId, sender_id: userId, content: closingMsg });

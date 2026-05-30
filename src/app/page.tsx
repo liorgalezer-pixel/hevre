@@ -930,7 +930,7 @@ export default function HomePage() {
                 <button
                   onClick={async () => {
                     if (!applicationId) return;
-                    await supabase.from("applications").update({ status: "cancelled" }).eq("id", applicationId);
+                    await supabase.from("applications").delete().eq("id", applicationId);
                     setAlreadyApplied(false);
                     setAppliedJobIds(prev => { const n = new Set(prev); n.delete(selectedJob.id); return n; });
                     setCancelDrawerModal(false);
