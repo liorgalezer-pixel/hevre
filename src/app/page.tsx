@@ -896,18 +896,19 @@ export default function HomePage() {
         </Drawer.Portal>
       </Drawer.Root>
 
-      {/* Report Modal */}
-      {reportOpen && selectedJob && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => !reportSent && setReportOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-[60] bg-paper rounded-t-3xl px-5 pt-5 pb-10 flex flex-col gap-4" dir="rtl" onClick={e => e.stopPropagation()}>
+      {/* Report Drawer */}
+      <Drawer.Root open={reportOpen} onOpenChange={(open) => { if (!open) { setReportOpen(false); setReportSent(false); } }}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 bg-ink/40 z-[60]" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] bg-paper rounded-t-3xl px-5 pt-4 pb-10 flex flex-col gap-4" dir="rtl">
+            <Drawer.Title className="sr-only">דיווח על מודעה</Drawer.Title>
             <div className="w-10 h-1 bg-divider rounded-full mx-auto mb-1" />
             {reportSent ? (
               <div className="flex flex-col items-center gap-3 py-6">
                 <span className="text-4xl">✅</span>
                 <p className="font-serif text-lg font-bold text-ink">הדיווח נשלח</p>
                 <p className="text-sm text-ink-3 text-center">תודה על הדיווח, נבדוק אותו בהקדם</p>
-                <button onClick={() => setReportOpen(false)} className="mt-2 h-12 px-8 bg-ink text-cream font-serif font-semibold rounded-2xl">סגור</button>
+                <Drawer.Close className="mt-2 h-12 px-8 bg-ink text-cream font-serif font-semibold rounded-2xl">סגור</Drawer.Close>
               </div>
             ) : (
               <>
@@ -931,7 +932,7 @@ export default function HomePage() {
                   disabled={!reportReason || !reportDetails.trim()}
                   onClick={async () => {
                     const { data: { user } } = await supabase.auth.getUser();
-                    await supabase.from("job_reports").insert({ job_id: selectedJob.id, reporter_id: user?.id ?? null, reason: reportReason, details: reportDetails.trim() });
+                    await supabase.from("job_reports").insert({ job_id: selectedJob!.id, reporter_id: user?.id ?? null, reason: reportReason, details: reportDetails.trim() });
                     setReportSent(true);
                   }}
                   className="w-full h-13 bg-warm-danger text-white font-serif font-semibold rounded-2xl py-3 disabled:opacity-40"
@@ -940,9 +941,9 @@ export default function HomePage() {
                 </button>
               </>
             )}
-          </div>
-        </>
-      )}
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
     </div>
   );
 }
