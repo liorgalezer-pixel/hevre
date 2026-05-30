@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -8,6 +8,17 @@ function HevrePlusSuccessContent() {
   const router = useRouter();
   const params = useSearchParams();
   const plan = params.get("plan");
+
+  useEffect(() => {
+    // In Capacitor in-app browser: close browser and navigate app to /subscription
+    if (typeof (window as any).Capacitor !== "undefined") {
+      import("@capacitor/browser").then(({ Browser }) => {
+        Browser.close().then(() => {
+          router.replace("/subscription");
+        });
+      });
+    }
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-cream items-center justify-center px-6 gap-6" dir="rtl">

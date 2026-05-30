@@ -71,6 +71,9 @@ export default function HevrePlusPage() {
 
     if (typeof (window as any).Capacitor !== "undefined") {
       const { Browser } = await import("@capacitor/browser");
+      Browser.addListener("browserFinished", () => {
+        setLoading(false);
+      });
       await Browser.open({ url: data.url });
     } else {
       window.location.href = data.url;
