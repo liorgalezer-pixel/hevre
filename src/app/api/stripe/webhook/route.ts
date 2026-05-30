@@ -55,13 +55,14 @@ export async function POST(req: NextRequest) {
       const plan = sub.metadata?.plan;
       if (!userId || !plan) break;
 
+      const status = sub.cancel_at_period_end ? "canceling" : sub.status;
       await supabaseAdmin.from("subscriptions").upsert({
         user_id: userId,
         stripe_customer_id: sub.customer as string,
         stripe_subscription_id: sub.id,
         stripe_price_id: sub.items.data[0].price.id,
         plan,
-        status: sub.status,
+        status,
         current_period_start: new Date(sub.items.data[0].current_period_start * 1000).toISOString(),
         current_period_end: new Date(sub.items.data[0].current_period_end * 1000).toISOString(),
         updated_at: new Date().toISOString(),
