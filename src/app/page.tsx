@@ -64,6 +64,7 @@ export default function HomePage() {
   const [filters, setFilters] = useState<Filters | null>(null);
   const [approvedApps, setApprovedApps] = useState<{ jobId: string; title: string; company: string }[]>([]);
   const [rejectedApps, setRejectedApps] = useState<{ jobId: string; title: string }[]>([]);
+  const [expiredApps, setExpiredApps] = useState<{ jobId: string; title: string }[]>([]);
   const [rejectedJobIds, setRejectedJobIds] = useState<Set<string>>(new Set());
   const [newApplicants, setNewApplicants] = useState<{ jobId: string; applicantId: string; jobTitle: string; applicantName: string }[]>([]);
   const [alertNotifs, setAlertNotifs] = useState<{ id: string; jobId: string; jobTitle: string; alertName: string }[]>([]);
@@ -129,7 +130,8 @@ export default function HomePage() {
           supabase
             .from("applications")
             .select("job_id, status, jobs(title, company_name)")
-            .eq("applicant_id", user.id),
+            .eq("applicant_id", user.id)
+            .in("status", ["approved", "rejected", "expired", "pending"]),
           supabase
             .from("alert_notifications")
             .select("id, job_id, job_title, alert_name")
@@ -165,6 +167,10 @@ export default function HomePage() {
           company: (a.jobs?.company_name as string) || "",
         })));
         setRejectedApps(undismissed.filter((a) => a.status === "rejected").map((a) => ({
+          jobId: a.job_id as string,
+          title: (a.jobs?.title as string) || "",
+        })));
+        setExpiredApps(undismissed.filter((a) => a.status === "expired").map((a) => ({
           jobId: a.job_id as string,
           title: (a.jobs?.title as string) || "",
         })));
@@ -384,7 +390,7 @@ export default function HomePage() {
             <div ref={bellRef} className="relative">
               <button onClick={() => { setBellOpen((v) => !v); setBellSeen(true); }} className="relative w-11 h-11 flex items-center justify-center">
                 <Bell size={24} className="text-ink" strokeWidth={1.8} />
-                {!bellSeen && (approvedApps.length > 0 || rejectedApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
+                {!bellSeen && (approvedApps.length > 0 || rejectedApps.length > 0 || expiredApps.length > 0 || newApplicants.length > 0 || alertNotifs.length > 0) && (
                   <span className="absolute top-2 right-2 w-2 h-2 bg-terracotta rounded-full" />
                 )}
               </button>
@@ -401,12 +407,13 @@ export default function HomePage() {
                         }
                         localStorage.setItem("hevre_notif_cleared_at", now);
                         const existingDismissed: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
-                        localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existingDismissed, ...approvedApps.map(a => a.jobId), ...rejectedApps.map(a => a.jobId)])]));
+                        localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existingDismissed, ...approvedApps.map(a => a.jobId), ...rejectedApps.map(a => a.jobId), ...expiredApps.map(a => a.jobId)])]));
                         const existingDismissedApplicants: string[] = JSON.parse(localStorage.getItem("hevre_dismissed_applicants") || "[]");
                         localStorage.setItem("hevre_dismissed_applicants", JSON.stringify([...new Set([...existingDismissedApplicants, ...newApplicants.map(n => `${n.jobId}:${n.applicantId}`)])]));
                         setNewApplicants([]);
                         setApprovedApps([]);
                         setRejectedApps([]);
+                        setExpiredApps([]);
                         if (alertNotifs.length > 0) {
                           await supabase.from("alert_notifications").update({ read: true }).in("id", alertNotifs.map(n => n.id));
                           setAlertNotifs([]);
@@ -466,8 +473,7 @@ export default function HomePage() {
                       <div key={app.jobId} className="relative">
                         <button onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
                           className="w-full bg-warm-danger-bg ring-1 ring-warm-danger-border rounded-xl px-3 pl-9 py-2.5 text-right flex flex-col gap-0.5">
-                          <span className="text-warm-danger font-bold text-xs">✗ מועמדות נדחתה</span>
-                          <span className="text-ink font-medium text-sm">{app.title}</span>
+                          <span className="text-warm-danger font-bold text-xs">✗ משרת {app.title} לא אישרה אותך</span>
                         </button>
                         <button
                           onClick={(e) => {
@@ -475,6 +481,26 @@ export default function HomePage() {
                             const existing: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
                             localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existing, app.jobId])]));
                             setRejectedApps(prev => prev.filter(a => a.jobId !== app.jobId));
+                          }}
+                          className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
+                        >
+                          <Trash2 size={13} className="text-ink-3" strokeWidth={1.8} />
+                        </button>
+                      </div>
+                    ))}
+                    {expiredApps.map((app) => (
+                      <div key={app.jobId} className="relative">
+                        <button onClick={() => { setBellOpen(false); router.push(`/jobs/${app.jobId}/view`); }}
+                          className="w-full bg-cream ring-1 ring-divider rounded-xl px-3 pl-9 py-2.5 text-right flex flex-col gap-0.5">
+                          <span className="text-ink-2 font-bold text-xs">⏰ המועמדות למשרת {app.title} בוטלה</span>
+                          <span className="text-ink-3 text-xs">עקב חוסר מענה תוך 48 שעות מרגע הבקשה</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const existing: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
+                            localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existing, app.jobId])]));
+                            setExpiredApps(prev => prev.filter(a => a.jobId !== app.jobId));
                           }}
                           className="absolute top-1/2 -translate-y-1/2 left-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-black/10"
                         >
@@ -502,7 +528,7 @@ export default function HomePage() {
                         </button>
                       </div>
                     ))}
-                    {approvedApps.length === 0 && rejectedApps.length === 0 && newApplicants.length === 0 && alertNotifs.length === 0 && (
+                    {approvedApps.length === 0 && rejectedApps.length === 0 && expiredApps.length === 0 && newApplicants.length === 0 && alertNotifs.length === 0 && (
                       <p className="bg-cream rounded-xl px-3 py-2.5 text-ink-3 text-sm">אין הודעות חדשות כרגע</p>
                     )}
                   </div>
