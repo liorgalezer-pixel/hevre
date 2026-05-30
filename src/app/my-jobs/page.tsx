@@ -56,6 +56,7 @@ export default function MyJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
   const [bannerVisible, setBannerVisible] = useState(true);
+  const [postLimit, setPostLimit] = useState(2);
   const [showEmptyModal, setShowEmptyModal] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -67,6 +68,9 @@ export default function MyJobsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setIsLoggedIn(false); setLoaded(true); return; }
       setIsLoggedIn(true);
+      const { data: sub } = await supabase.from("subscriptions").select("plan").eq("user_id", user.id).in("status", ["active", "canceling"]).maybeSingle();
+      if (sub?.plan === "plus") setPostLimit(Infinity);
+      else if (sub?.plan === "pro") setPostLimit(5);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await supabase.from("jobs").select("*").eq("created_by", user.id).order("created_at", { ascending: false }) as { data: any[]; error: any };
       if (error) { setLoaded(true); return; }
@@ -160,7 +164,7 @@ export default function MyJobsPage() {
 
         {/* Banner */}
         {jobs.length > 0 && bannerVisible && (
-          jobs.length >= 2 ? (
+          jobs.length >= postLimit ? (
             <div className="bg-terracotta rounded-2xl px-4 py-4 flex items-center gap-3" style={{ direction: "ltr" }}>
               <button onClick={() => setBannerVisible(false)} className="shrink-0"><X size={18} className="text-cream opacity-60" strokeWidth={2} /></button>
               <div className="flex flex-1 items-center justify-between gap-3">
