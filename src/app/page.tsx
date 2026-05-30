@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, Share2 } from "lucide-react";
+import { MessageCircle, Bell, Search, SlidersHorizontal, MapPin, DollarSign, Clock, Heart, X, Trash2, CheckCircle2, Share2, Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useMemo } from "react";
 
@@ -92,6 +92,10 @@ export default function HomePage() {
   const [applySuccess, setApplySuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [isOwnJob, setIsOwnJob] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSent, setReportSent] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
 
   useEffect(() => {
@@ -766,6 +770,12 @@ export default function HomePage() {
                     >
                       <Share2 size={18} className="text-ink-2" strokeWidth={2} />
                     </button>
+                    <button
+                      onClick={() => { setReportReason(""); setReportDetails(""); setReportSent(false); setReportOpen(true); }}
+                      className="w-9 h-9 flex items-center justify-center rounded-full bg-cream active:bg-cream-warm shrink-0"
+                    >
+                      <Flag size={16} className="text-ink-3" strokeWidth={1.8} />
+                    </button>
                     <div className="flex-1 text-right">
                       <h2 className="font-serif text-2xl font-bold text-ink leading-tight tracking-tight">{selectedJob.title}</h2>
                       <p className="text-sm text-ink-2 mt-0.5">{selectedJob.company}</p>
@@ -884,6 +894,54 @@ export default function HomePage() {
           </Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>
+
+      {/* Report Modal */}
+      {reportOpen && selectedJob && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => !reportSent && setReportOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-paper rounded-t-3xl px-5 pt-5 pb-10 flex flex-col gap-4" dir="rtl">
+            <div className="w-10 h-1 bg-divider rounded-full mx-auto mb-1" />
+            {reportSent ? (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <span className="text-4xl">✅</span>
+                <p className="font-serif text-lg font-bold text-ink">הדיווח נשלח</p>
+                <p className="text-sm text-ink-3 text-center">תודה על הדיווח, נבדוק אותו בהקדם</p>
+                <button onClick={() => setReportOpen(false)} className="mt-2 h-12 px-8 bg-ink text-cream font-serif font-semibold rounded-2xl">סגור</button>
+              </div>
+            ) : (
+              <>
+                <h2 className="font-serif text-lg font-bold text-ink">דיווח על מודעה</h2>
+                <div className="flex flex-wrap gap-2">
+                  {["מידע שגוי / מטעה", "מודעה כפולה", "תוכן לא הולם", "הונאה / מרמה", "אחר"].map(r => (
+                    <button key={r} onClick={() => setReportReason(r)}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium ring-1 transition-colors ${reportReason === r ? "bg-terracotta text-cream ring-terracotta" : "bg-cream text-ink ring-divider"}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={reportDetails}
+                  onChange={e => setReportDetails(e.target.value)}
+                  placeholder="פרט את הבעיה..."
+                  rows={3}
+                  className="w-full ring-1 ring-divider rounded-xl px-3 py-2.5 text-sm text-right resize-none outline-none bg-cream text-ink focus:ring-terracotta focus:ring-2"
+                />
+                <button
+                  disabled={!reportReason || !reportDetails.trim()}
+                  onClick={async () => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    await supabase.from("job_reports").insert({ job_id: selectedJob.id, reporter_id: user?.id ?? null, reason: reportReason, details: reportDetails.trim() });
+                    setReportSent(true);
+                  }}
+                  className="w-full h-13 bg-warm-danger text-white font-serif font-semibold rounded-2xl py-3 disabled:opacity-40"
+                >
+                  שלח דיווח
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

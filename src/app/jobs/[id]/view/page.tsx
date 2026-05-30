@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import posthog from "posthog-js";
-import { ChevronLeft, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, CalendarDays, Send, Heart, Share2, LogIn } from "lucide-react";
+import { ChevronLeft, MapPin, DollarSign, Clock, IdCard, Car, BedDouble, CalendarDays, Send, Heart, Share2, LogIn, Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { MOCK_JOBS } from "@/lib/mock-jobs";
 import BottomNav from "@/components/BottomNav";
@@ -25,6 +25,10 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   const { id } = use(params);
   const [saved, setSaved] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSent, setReportSent] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
   const [aboutSelf, setAboutSelf] = useState("");
@@ -182,6 +186,9 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
             className="w-11 h-11 flex items-center justify-center"
           >
             <Share2 size={22} className="text-ink-3" strokeWidth={1.8} />
+          </button>
+          <button onClick={() => setReportOpen(true)} className="w-11 h-11 flex items-center justify-center">
+            <Flag size={20} className="text-ink-3" strokeWidth={1.8} />
           </button>
           <button onClick={() => router.back()} className="w-11 h-11 flex items-center justify-center">
             <ChevronLeft size={24} className="text-ink-2" strokeWidth={2} />
@@ -371,6 +378,54 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
             >
               שלח מועמדות
             </button>
+          </div>
+        </>
+      )}
+
+      {/* Report Modal */}
+      {reportOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => !reportSent && setReportOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-paper rounded-t-3xl px-5 pt-5 pb-10 flex flex-col gap-4" dir="rtl">
+            <div className="w-10 h-1 bg-divider rounded-full mx-auto mb-1" />
+            {reportSent ? (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <span className="text-4xl">✅</span>
+                <p className="font-serif text-lg font-bold text-ink">הדיווח נשלח</p>
+                <p className="text-sm text-ink-3 text-center">תודה על הדיווח, נבדוק אותו בהקדם</p>
+                <button onClick={() => { setReportOpen(false); setReportSent(false); setReportReason(""); setReportDetails(""); }} className="mt-2 h-12 px-8 bg-ink text-cream font-serif font-semibold rounded-2xl">סגור</button>
+              </div>
+            ) : (
+              <>
+                <h2 className="font-serif text-lg font-bold text-ink">דיווח על מודעה</h2>
+                <div className="flex flex-wrap gap-2">
+                  {["מידע שגוי / מטעה", "מודעה כפולה", "תוכן לא הולם", "הונאה / מרמה", "אחר"].map(r => (
+                    <button key={r} onClick={() => setReportReason(r)}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium ring-1 transition-colors ${reportReason === r ? "bg-terracotta text-cream ring-terracotta" : "bg-cream text-ink ring-divider"}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={reportDetails}
+                  onChange={e => setReportDetails(e.target.value)}
+                  placeholder="פרט את הבעיה..."
+                  rows={3}
+                  className="w-full ring-1 ring-divider rounded-xl px-3 py-2.5 text-sm text-right resize-none outline-none bg-cream text-ink focus:ring-terracotta focus:ring-2"
+                />
+                <button
+                  disabled={!reportReason || !reportDetails.trim()}
+                  onClick={async () => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    await supabase.from("job_reports").insert({ job_id: id, reporter_id: user?.id ?? null, reason: reportReason, details: reportDetails.trim() });
+                    setReportSent(true);
+                  }}
+                  className="w-full h-13 bg-warm-danger text-white font-serif font-semibold rounded-2xl py-3 disabled:opacity-40"
+                >
+                  שלח דיווח
+                </button>
+              </>
+            )}
           </div>
         </>
       )}
