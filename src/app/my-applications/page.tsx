@@ -49,6 +49,7 @@ export default function MyApplicationsPage() {
         .from("applications")
         .select("id, job_id, status, created_at, jobs(title, company_name, company_address, salary)")
         .eq("applicant_id", user.id)
+        .not("status", "eq", "cancelled")
         .order("created_at", { ascending: false });
 
       const { data: convs } = await supabase
