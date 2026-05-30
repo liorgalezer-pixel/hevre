@@ -951,11 +951,13 @@ export default function HomePage() {
                   if (!applicationId) return;
                   const { data: { user: u } } = await supabase.auth.getUser();
                   await supabase.from("applications").delete().eq("id", applicationId).eq("applicant_id", u?.id!);
-                  if (selectedJob && u) await supabase.from("application_cooldowns").upsert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: new Date().toISOString() }, { onConflict: "applicant_id,job_id" });
+                  const now = new Date();
+                  const until = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+                  if (selectedJob && u) await supabase.from("application_cooldowns").upsert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() }, { onConflict: "applicant_id,job_id" });
                   setAlreadyApplied(false);
+                  setDrawerCooldownUntil(until);
                   if (selectedJob) setAppliedJobIds(prev => { const n = new Set(prev); n.delete(selectedJob.id); return n; });
                   setCancelDrawerModal(false);
-                  setDrawerOpen(false);
                 }}
                 className="flex-1 h-12 rounded-2xl bg-warm-danger text-white font-semibold text-sm"
               >
