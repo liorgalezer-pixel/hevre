@@ -404,14 +404,40 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       <BottomNav />
 
       {/* Upgrade button */}
-      <div className="fixed bottom-16 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
-        <button
-          onClick={() => router.push(`/upgrade?job=${id}`)}
-          className="w-full h-14 bg-terracotta text-cream font-serif font-semibold text-lg rounded-2xl active:opacity-90 transition-opacity"
-        >
-          שדרוג מודעה ✦
-        </button>
-      </div>
+      {(() => {
+        const boostedUntil = job.boosted_until ? new Date(job.boosted_until) : null;
+        const now = new Date();
+        const isActive = boostedUntil && boostedUntil > now;
+        const hoursLeft = isActive ? (boostedUntil!.getTime() - now.getTime()) / 3600000 : 0;
+        const tierName = job.boost_tier === "featured" ? "גיוס מהיר" : "בוסט";
+
+        if (isActive && hoursLeft >= 24) return null;
+
+        return (
+          <div className="fixed bottom-16 right-0 left-0 bg-paper border-t border-divider px-4 py-4">
+            {isActive && hoursLeft < 24 ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-center text-xs text-warm-danger font-semibold">
+                  ⏰ מסלול &quot;{tierName}&quot; — נשאר פחות מ-24 שעות!
+                </p>
+                <button
+                  onClick={() => router.push(`/upgrade?job=${id}`)}
+                  className="w-full h-14 bg-terracotta text-cream font-serif font-semibold text-base rounded-2xl active:opacity-90 transition-opacity"
+                >
+                  להארכת שדרוג המודעה ✦
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => router.push(`/upgrade?job=${id}`)}
+                className="w-full h-14 bg-terracotta text-cream font-serif font-semibold text-lg rounded-2xl active:opacity-90 transition-opacity"
+              >
+                שדרוג מודעה ✦
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Applicant modal */}
       {selectedApplicant && (
