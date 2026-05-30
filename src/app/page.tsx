@@ -642,12 +642,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Bump badge */}
-              {isBoosted && !isFeatured && (
-                <div className="flex items-center gap-1 -mb-1">
-                  <span className="text-[10px] font-semibold text-ink-3 tracking-wide">✦ ממומן</span>
-                </div>
-              )}
 
               {/* Top row */}
               <div className="flex items-start gap-3" style={{ direction: "ltr" }}>
