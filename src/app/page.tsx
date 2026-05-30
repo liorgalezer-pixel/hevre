@@ -910,41 +910,42 @@ export default function HomePage() {
         </Drawer.Portal>
       </Drawer.Root>
 
-      {/* Cancel application modal from drawer */}
-      {cancelDrawerModal && selectedJob && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => setCancelDrawerModal(false)} />
-          <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" dir="rtl">
-            <div className="bg-paper rounded-3xl w-full max-w-sm p-6 flex flex-col gap-5 shadow-2xl">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="w-14 h-14 rounded-full bg-warm-danger-bg flex items-center justify-center">
-                  <X size={26} className="text-warm-danger" strokeWidth={2} />
-                </div>
-                <h2 className="font-serif text-lg font-bold text-ink tracking-tight">ביטול מועמדות</h2>
-                <p className="text-sm text-ink-2 leading-relaxed">
-                  האם אתה בטוח שאתה רוצה לבטל את המועמדות ל<span className="font-bold text-ink">{selectedJob.title}</span>?
-                </p>
+      {/* Cancel application drawer */}
+      <Drawer.Root open={cancelDrawerModal} onOpenChange={(open) => { if (!open) setCancelDrawerModal(false); }}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 bg-ink/40 z-[60]" />
+          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-[60] bg-paper rounded-t-3xl px-5 pt-4 pb-10 flex flex-col gap-5" dir="rtl">
+            <Drawer.Title className="sr-only">ביטול מועמדות</Drawer.Title>
+            <div className="w-10 h-1 bg-divider rounded-full mx-auto" />
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-14 h-14 rounded-full bg-warm-danger-bg flex items-center justify-center">
+                <X size={26} className="text-warm-danger" strokeWidth={2} />
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setCancelDrawerModal(false)} className="flex-1 h-12 rounded-2xl bg-cream font-semibold text-sm text-ink">לא</button>
-                <button
-                  onClick={async () => {
-                    if (!applicationId) return;
-                    await supabase.from("applications").delete().eq("id", applicationId);
-                    setAlreadyApplied(false);
-                    setAppliedJobIds(prev => { const n = new Set(prev); n.delete(selectedJob.id); return n; });
-                    setCancelDrawerModal(false);
-                    setDrawerOpen(false);
-                  }}
-                  className="flex-1 h-12 rounded-2xl bg-warm-danger text-white font-semibold text-sm"
-                >
-                  כן, בטל
-                </button>
-              </div>
+              <h2 className="font-serif text-lg font-bold text-ink tracking-tight">ביטול מועמדות</h2>
+              <p className="text-sm text-ink-2 leading-relaxed">
+                האם אתה בטוח שאתה רוצה לבטל את המועמדות ל<span className="font-bold text-ink">{selectedJob?.title}</span>?
+              </p>
             </div>
-          </div>
-        </>
-      )}
+            <div className="flex gap-3">
+              <Drawer.Close className="flex-1 h-12 rounded-2xl bg-cream font-semibold text-sm text-ink">לא</Drawer.Close>
+              <button
+                onClick={async () => {
+                  if (!applicationId) return;
+                  const { data: { user: u } } = await supabase.auth.getUser();
+                  await supabase.from("applications").delete().eq("id", applicationId).eq("applicant_id", u?.id!);
+                  setAlreadyApplied(false);
+                  if (selectedJob) setAppliedJobIds(prev => { const n = new Set(prev); n.delete(selectedJob.id); return n; });
+                  setCancelDrawerModal(false);
+                  setDrawerOpen(false);
+                }}
+                className="flex-1 h-12 rounded-2xl bg-warm-danger text-white font-semibold text-sm"
+              >
+                כן, בטל
+              </button>
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
 
       {/* Report Drawer */}
       <Drawer.Root open={reportOpen} onOpenChange={(open) => { if (!open) { setReportOpen(false); setReportSent(false); } }}>
