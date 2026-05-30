@@ -233,6 +233,11 @@ export default function HomePage() {
       created_by: j.created_by,
     }));
     if (error) { setJobsError(true); setJobsLoading(false); return; }
+    // Sort: featured first → bump second → regular last
+    postedJobs.sort((a, b) => {
+      const p = (j: typeof postedJobs[0]) => j.isFeatured ? 0 : j.isBoosted ? 1 : 2;
+      return p(a) - p(b);
+    });
     setUserJobs(prev => reset ? postedJobs : [...prev, ...postedJobs]);
     setHasMore((data || []).length === PAGE_SIZE);
     setDbPage(page);
