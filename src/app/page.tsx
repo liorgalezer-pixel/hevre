@@ -94,6 +94,7 @@ export default function HomePage() {
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const [cancelDrawerModal, setCancelDrawerModal] = useState(false);
+  const [drawerCooldownUntil, setDrawerCooldownUntil] = useState<Date | null>(null);
   const [isOwnJob, setIsOwnJob] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -294,6 +295,7 @@ export default function HomePage() {
     setApplySuccess(false);
     setAlreadyApplied(false);
     setIsOwnJob(false);
+    setDrawerCooldownUntil(null);
     setAnswers(job.questions?.length ? new Array(job.questions.length).fill("") : []);
     setDrawerOpen(true);
     posthog.capture("job_viewed", { job_id: job.id, category: job.categories?.[0] ?? null, neighborhood: job.location ?? null });
@@ -302,11 +304,18 @@ export default function HomePage() {
     if (user) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((job as any).created_by === user.id) { setIsOwnJob(true); return; }
-      const { data } = await supabase.from("applications").select("id, status").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle();
+      const [{ data }, { data: cooldown }] = await Promise.all([
+        supabase.from("applications").select("id, status").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle(),
+        supabase.from("application_cooldowns").select("cancelled_at").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle(),
+      ]);
       if (data) {
         setAlreadyApplied(true);
         setApplicationId(data.id);
         setApplicationStatus(data.status);
+      }
+      if (cooldown) {
+        const until = new Date(new Date(cooldown.cancelled_at).getTime() + 48 * 60 * 60 * 1000);
+        if (until > new Date()) setDrawerCooldownUntil(until);
       }
     }
   };
@@ -889,6 +898,15 @@ export default function HomePage() {
                           <X size={14} strokeWidth={2.5} /> ביטול מועמדות
                         </button>
                       )}
+                    </div>
+                  ) : drawerCooldownUntil ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-full h-14 bg-gray-100 text-gray-400 font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-not-allowed">
+                        🚫 לא ניתן להגיש מועמדות כרגע
+                      </div>
+                      <p className="text-xs text-ink-3 text-center">
+                        ביטלת מועמדות — ניתן להגיש שוב ב-{drawerCooldownUntil.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      </p>
                     </div>
                   ) : (
                     <button
