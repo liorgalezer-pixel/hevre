@@ -10,15 +10,9 @@ function HevrePlusSuccessContent() {
   const plan = params.get("plan");
 
   useEffect(() => {
-    // In Capacitor in-app browser: close browser and navigate app to /subscription
-    if (typeof (window as any).Capacitor !== "undefined") {
-      import("@capacitor/browser").then(({ Browser }) => {
-        Browser.close().then(() => {
-          router.replace("/subscription");
-        });
-      });
-    }
-  }, []);
+    // Trigger deep link to return to app and close in-app browser
+    window.location.href = `hevre://subscription/success?plan=${plan ?? ""}`;
+  }, [plan]);
 
   return (
     <div className="flex flex-col min-h-screen bg-cream items-center justify-center px-6 gap-6" dir="rtl">

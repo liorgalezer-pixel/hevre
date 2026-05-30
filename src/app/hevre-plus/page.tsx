@@ -71,28 +71,7 @@ export default function HevrePlusPage() {
 
     if (typeof (window as any).Capacitor !== "undefined") {
       const { Browser } = await import("@capacitor/browser");
-      const { App } = await import("@capacitor/app");
-
-      // When app returns to foreground after payment, check Supabase for active subscription
-      const stateListener = await App.addListener("appStateChange", async ({ isActive }) => {
-        if (!isActive) return;
-        await stateListener.remove();
-        setLoading(false);
-        const { data: { user: u } } = await supabase.auth.getUser();
-        if (!u) return;
-        const { data: sub } = await supabase
-          .from("subscriptions")
-          .select("id")
-          .eq("user_id", u.id)
-          .eq("status", "active")
-          .maybeSingle();
-        if (sub) router.replace("/subscription");
-      });
-
-      Browser.addListener("browserFinished", () => {
-        setLoading(false);
-      });
-
+      Browser.addListener("browserFinished", () => setLoading(false));
       await Browser.open({ url: data.url });
     } else {
       window.location.href = data.url;

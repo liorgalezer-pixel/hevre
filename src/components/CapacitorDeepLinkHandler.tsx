@@ -28,6 +28,10 @@ export default function CapacitorDeepLinkHandler() {
           import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => {});
           const p = new URL(url).searchParams;
           router.replace(`/upgrade/success?job=${p.get("job")}&tier=${p.get("tier")}`);
+        } else if (url.startsWith("hevre://subscription/success")) {
+          import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => {});
+          const p = new URL(url).searchParams;
+          router.replace(`/subscription?plan=${p.get("plan")}`);
         }
       });
     }).catch(() => {});
