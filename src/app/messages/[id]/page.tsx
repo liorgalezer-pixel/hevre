@@ -121,7 +121,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       ? `🚫 המעסיק סיים את השיחה — ${jobTitle}`
       : `🚫 המועמד ביטל את המועמדות — ${jobTitle}`;
     await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: myId, content: closingMsg });
-    await supabase.from("conversations").update({ closed_at: new Date().toISOString() }).eq("id", conversationId);
+    await supabase.rpc("close_conversation", { p_conversation_id: conversationId });
     if (!isEmployer && jobId) {
       await supabase.from("applications").delete().eq("job_id", jobId).eq("applicant_id", myId);
       await supabase.from("application_cooldowns").delete().eq("applicant_id", myId).eq("job_id", jobId);

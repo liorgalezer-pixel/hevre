@@ -86,7 +86,7 @@ export default function MyApplicationsPage() {
     if (cancelTarget.conversationId) {
       const closingMsg = `🚫 הצאט נסגר עקב ביטול מועמדות למשרת "${cancelTarget.title}"`;
       await supabase.from("messages").insert({ conversation_id: cancelTarget.conversationId, sender_id: userId, content: closingMsg });
-      await supabase.from("conversations").update({ closed_at: new Date().toISOString() }).eq("id", cancelTarget.conversationId);
+      await supabase.rpc("close_conversation", { p_conversation_id: cancelTarget.conversationId });
     }
     setApplications(prev => prev.filter(a => a.id !== cancelTarget.id));
     setCancelTarget(null);
