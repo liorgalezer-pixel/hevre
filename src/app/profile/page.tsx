@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, PlusCircle, LogOut, UserPen, X, Trash2 } from "lucide-react";
+import { Camera, Monitor, FileCheck, Bell, Mail, ChevronLeft, HelpCircle, ScrollText, ShieldCheck, Star, Smile, Heart, PlusCircle, LogOut, UserPen, X, Trash2, Crown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +15,7 @@ const accountItems: { icon: React.ElementType; label: string; bold: boolean; hre
   { icon: Heart, label: "משרות שמורות", bold: false, href: "/saved" },
   { icon: Bell, label: "התראות", bold: false, href: "/alerts" },
   { icon: Mail, label: "הודעות", bold: false, href: "/messages" },
+  { icon: Crown, label: "המנוי שלי", bold: false, href: "/subscription" },
   { icon: UserPen, label: "עדכון פרטים אישיים", bold: false, href: "/profile/edit" },
 ];
 
