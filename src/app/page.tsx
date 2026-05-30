@@ -953,7 +953,10 @@ export default function HomePage() {
                   await supabase.from("applications").delete().eq("id", applicationId).eq("applicant_id", u?.id!);
                   const now = new Date();
                   const until = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-                  if (selectedJob && u) await supabase.from("application_cooldowns").upsert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() }, { onConflict: "applicant_id,job_id" });
+                  if (selectedJob && u) {
+                    await supabase.from("application_cooldowns").delete().eq("applicant_id", u.id).eq("job_id", selectedJob.id);
+                    await supabase.from("application_cooldowns").insert({ applicant_id: u.id, job_id: selectedJob.id, cancelled_at: now.toISOString() });
+                  }
                   setAlreadyApplied(false);
                   setDrawerCooldownUntil(until);
                   if (selectedJob) setAppliedJobIds(prev => { const n = new Set(prev); n.delete(selectedJob.id); return n; });
