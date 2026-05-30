@@ -90,6 +90,7 @@ export default function HomePage() {
   const [applying, setApplying] = useState(false);
   const [applySuccess, setApplySuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [isOwnJob, setIsOwnJob] = useState(false);
   const [answers, setAnswers] = useState<string[]>([]);
 
   useEffect(() => {
@@ -203,7 +204,7 @@ export default function HomePage() {
         .then(({ count }) => { if (count !== null) setTotalJobCount(count); });
     } else setLoadingMore(true);
     const { data, error } = await supabase.from("jobs")
-      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at, boosted_until, boost_tier")
+      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at, boosted_until, boost_tier, created_by")
       .eq("active", true)
       .eq("frozen", false)
       .order("boosted_until", { ascending: false, nullsFirst: false })
@@ -229,6 +230,7 @@ export default function HomePage() {
       created_at: j.created_at,
       isFeatured: j.boost_tier === "featured" && j.boosted_until && new Date(j.boosted_until) > now,
       isBoosted: j.boost_tier === "bump" && j.boosted_until && new Date(j.boosted_until) > now,
+      created_by: j.created_by,
     }));
     if (error) { setJobsError(true); setJobsLoading(false); return; }
     setUserJobs(prev => reset ? postedJobs : [...prev, ...postedJobs]);
@@ -275,12 +277,15 @@ export default function HomePage() {
     setSelectedJob(job);
     setApplySuccess(false);
     setAlreadyApplied(false);
+    setIsOwnJob(false);
     setAnswers(job.questions?.length ? new Array(job.questions.length).fill("") : []);
     setDrawerOpen(true);
     posthog.capture("job_viewed", { job_id: job.id, category: job.categories?.[0] ?? null, neighborhood: job.location ?? null });
 
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((job as any).created_by === user.id) { setIsOwnJob(true); return; }
       const { data } = await supabase.from("applications").select("id").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle();
       if (data) setAlreadyApplied(true);
     }
@@ -829,6 +834,10 @@ export default function HomePage() {
                       <CheckCircle2 size={22} className="text-white" strokeWidth={2} />
                       <span className="text-white font-serif font-semibold text-base">המועמדות נשלחה!</span>
                     </div>
+                  ) : isOwnJob ? (
+                    <div className="w-full h-14 bg-cream rounded-2xl flex items-center justify-center px-4">
+                      <span className="text-ink-3 font-medium text-sm text-center">את/ה לא יכול/ה להגיש מועמדות לעצמך</span>
+                    </div>
                   ) : alreadyApplied ? (
                     <div className="w-full h-14 bg-cream rounded-2xl flex items-center justify-center gap-2">
                       <CheckCircle2 size={20} className="text-ink-2" strokeWidth={2} />
@@ -843,9 +852,7 @@ export default function HomePage() {
                       {applying ? (
                         <span className="animate-pulse">שולח...</span>
                       ) : (
-                        <>
-                          <span className="text-terracotta">⚡</span> הגשת מועמדות מהירה
-                        </>
+                        <>הגשת מועמדות מהירה <span className="text-terracotta">⚡</span></>
                       )}
                     </button>
                   )}
