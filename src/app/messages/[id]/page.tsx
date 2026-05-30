@@ -124,6 +124,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     await supabase.from("conversations").update({ closed_at: new Date().toISOString() }).eq("id", conversationId);
     if (!isEmployer && jobId) {
       await supabase.from("applications").delete().eq("job_id", jobId).eq("applicant_id", myId);
+      await supabase.from("application_cooldowns").upsert({ applicant_id: myId, job_id: jobId, cancelled_at: new Date().toISOString() }, { onConflict: "applicant_id,job_id" });
     }
     setIsClosed(true);
     setDisconnectModal(false);

@@ -42,6 +42,7 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
   const [userJob, setUserJob] = useState<typeof MOCK_JOBS[0] | null>(null);
   const [jobLoaded, setJobLoaded] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState<Date | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -86,6 +87,14 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
         const { data: myApp } = await supabase
           .from("applications").select("status")
           .eq("job_id", id).eq("applicant_id", userId).single();
+
+        const { data: cooldown } = await supabase
+          .from("application_cooldowns").select("cancelled_at")
+          .eq("job_id", id).eq("applicant_id", userId).single();
+        if (cooldown) {
+          const until = new Date(new Date(cooldown.cancelled_at).getTime() + 48 * 60 * 60 * 1000);
+          if (until > new Date()) setCooldownUntil(until);
+        }
 
         if (myApp) {
           setAlreadyApplied(true);
@@ -285,6 +294,15 @@ export default function JobViewPage({ params }: { params: Promise<{ id: string }
         ) : alreadyApplied || submitted ? (
           <div className="w-full h-14 bg-orange-50 border border-orange-200 text-orange-500 font-serif font-semibold text-base rounded-2xl flex items-center justify-center gap-2">
             ⏳ מועמדות בהמתנה
+          </div>
+        ) : cooldownUntil ? (
+          <div className="w-full flex flex-col items-center gap-1">
+            <div className="w-full h-14 bg-gray-100 text-gray-400 font-serif font-semibold text-sm rounded-2xl flex items-center justify-center gap-2 cursor-not-allowed">
+              🚫 לא ניתן להגיש מועמדות כרגע
+            </div>
+            <p className="text-xs text-ink-3 text-center">
+              ביטלת מועמדות למשרה זו — ניתן להגיש שוב ב-{cooldownUntil.toLocaleString("he-IL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </p>
           </div>
         ) : (
           <button

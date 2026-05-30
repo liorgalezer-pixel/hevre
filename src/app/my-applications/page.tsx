@@ -81,6 +81,7 @@ export default function MyApplicationsPage() {
     setCancelling(true);
     const { error } = await supabase.from("applications").delete().eq("id", cancelTarget.id).eq("applicant_id", userId!);
     if (error) { alert("שגיאה בביטול: " + error.message); setCancelling(false); return; }
+    await supabase.from("application_cooldowns").upsert({ applicant_id: userId, job_id: cancelTarget.jobId, cancelled_at: new Date().toISOString() }, { onConflict: "applicant_id,job_id" });
     if (cancelTarget.conversationId) {
       const closingMsg = `🚫 הצאט נסגר עקב ביטול מועמדות למשרת "${cancelTarget.title}"`;
       await supabase.from("messages").insert({ conversation_id: cancelTarget.conversationId, sender_id: userId, content: closingMsg });
