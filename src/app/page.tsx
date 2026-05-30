@@ -91,6 +91,9 @@ export default function HomePage() {
   const [applying, setApplying] = useState(false);
   const [applySuccess, setApplySuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
+  const [cancelDrawerModal, setCancelDrawerModal] = useState(false);
   const [isOwnJob, setIsOwnJob] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -299,8 +302,12 @@ export default function HomePage() {
     if (user) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((job as any).created_by === user.id) { setIsOwnJob(true); return; }
-      const { data } = await supabase.from("applications").select("id").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle();
-      if (data) setAlreadyApplied(true);
+      const { data } = await supabase.from("applications").select("id, status").eq("job_id", job.id).eq("applicant_id", user.id).maybeSingle();
+      if (data) {
+        setAlreadyApplied(true);
+        setApplicationId(data.id);
+        setApplicationStatus(data.status);
+      }
     }
   };
 
@@ -872,9 +879,16 @@ export default function HomePage() {
                       <span className="text-ink-3 font-medium text-sm text-center">את/ה לא יכול/ה להגיש מועמדות לעצמך</span>
                     </div>
                   ) : alreadyApplied ? (
-                    <div className="w-full h-14 bg-cream rounded-2xl flex items-center justify-center gap-2">
-                      <CheckCircle2 size={20} className="text-ink-2" strokeWidth={2} />
-                      <span className="text-ink-2 font-semibold text-base">כבר הגשת מועמדות</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="w-full h-14 bg-cream rounded-2xl flex items-center justify-center gap-2">
+                        <CheckCircle2 size={20} className="text-ink-2" strokeWidth={2} />
+                        <span className="text-ink-2 font-semibold text-base">כבר הגשת מועמדות</span>
+                      </div>
+                      {applicationStatus === "pending" && (
+                        <button onClick={() => setCancelDrawerModal(true)} className="w-full h-10 rounded-2xl bg-warm-danger-bg text-warm-danger font-semibold text-sm flex items-center justify-center gap-1.5 ring-1 ring-warm-danger-border">
+                          <X size={14} strokeWidth={2.5} /> ביטול מועמדות
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <button
@@ -895,6 +909,42 @@ export default function HomePage() {
           </Drawer.Content>
         </Drawer.Portal>
       </Drawer.Root>
+
+      {/* Cancel application modal from drawer */}
+      {cancelDrawerModal && selectedJob && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => setCancelDrawerModal(false)} />
+          <div className="fixed inset-0 z-[60] flex items-center justify-center px-6" dir="rtl">
+            <div className="bg-paper rounded-3xl w-full max-w-sm p-6 flex flex-col gap-5 shadow-2xl">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-full bg-warm-danger-bg flex items-center justify-center">
+                  <X size={26} className="text-warm-danger" strokeWidth={2} />
+                </div>
+                <h2 className="font-serif text-lg font-bold text-ink tracking-tight">ביטול מועמדות</h2>
+                <p className="text-sm text-ink-2 leading-relaxed">
+                  האם אתה בטוח שאתה רוצה לבטל את המועמדות ל<span className="font-bold text-ink">{selectedJob.title}</span>?
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setCancelDrawerModal(false)} className="flex-1 h-12 rounded-2xl bg-cream font-semibold text-sm text-ink">לא</button>
+                <button
+                  onClick={async () => {
+                    if (!applicationId) return;
+                    await supabase.from("applications").update({ status: "cancelled" }).eq("id", applicationId);
+                    setAlreadyApplied(false);
+                    setAppliedJobIds(prev => { const n = new Set(prev); n.delete(selectedJob.id); return n; });
+                    setCancelDrawerModal(false);
+                    setDrawerOpen(false);
+                  }}
+                  className="flex-1 h-12 rounded-2xl bg-warm-danger text-white font-semibold text-sm"
+                >
+                  כן, בטל
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Report Drawer */}
       <Drawer.Root open={reportOpen} onOpenChange={(open) => { if (!open) { setReportOpen(false); setReportSent(false); } }}>

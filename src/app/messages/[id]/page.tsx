@@ -27,6 +27,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [waPhone, setWaPhone] = useState("");
   const [waCountry, setWaCountry] = useState<"+972" | "+1">("+972");
+  const [isClosed, setIsClosed] = useState(false);
+  const [disconnectModal, setDisconnectModal] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       const [profileRes, convRes, msgsRes] = await Promise.all([
         supabase.from("profiles").select("first_name, phone").eq("id", user.id).single(),
         supabase.from("conversations")
-          .select("employer_id, applicant_id, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name)")
+          .select("employer_id, applicant_id, job_id, closed_at, jobs(title), employer:profiles!conversations_employer_id_fkey(first_name), applicant:profiles!conversations_applicant_id_fkey(first_name)")
           .eq("id", conversationId).single(),
         supabase.from("messages").select("id, sender_id, content, created_at")
           .eq("conversation_id", conversationId).order("created_at", { ascending: true }),
@@ -66,6 +70,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const c = convRes.data as any;
         setJobTitle(c.jobs?.title || "משרה");
+        setJobId(c.job_id);
+        if (c.closed_at) setIsClosed(true);
         const emp = c.employer_id === user.id;
         setIsEmployer(emp);
         setRecipientId(emp ? c.applicant_id : c.employer_id);
@@ -108,6 +114,22 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
+  const handleDisconnect = async () => {
+    if (!myId) return;
+    setDisconnecting(true);
+    const closingMsg = isEmployer
+      ? `🚫 המעסיק סיים את השיחה — ${jobTitle}`
+      : `🚫 המועמד ביטל את המועמדות — ${jobTitle}`;
+    await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: myId, content: closingMsg });
+    await supabase.from("conversations").update({ closed_at: new Date().toISOString() }).eq("id", conversationId);
+    if (!isEmployer && jobId) {
+      await supabase.from("applications").update({ status: "cancelled" }).eq("job_id", jobId).eq("applicant_id", myId);
+    }
+    setIsClosed(true);
+    setDisconnectModal(false);
+    setDisconnecting(false);
+  };
+
   const handleSendWhatsApp = async () => {
     if (!myId || !waPhone.replace(/\D/g, "")) return;
     const digits = waCountry.replace("+", "") + waPhone.replace(/\D/g, "");
@@ -141,7 +163,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             <p className="font-serif text-sm font-bold text-ink truncate tracking-tight">{otherName}</p>
             <p className="text-xs text-ink-3 truncate">{jobTitle}</p>
           </div>
-          {isEmployer && (
+          {!isClosed && (
+            <button onClick={() => setDisconnectModal(true)} className="w-9 h-9 flex items-center justify-center rounded-full bg-warm-danger-bg shrink-0">
+              <X size={16} className="text-warm-danger" strokeWidth={2.5} />
+            </button>
+          )}
+          {isEmployer && !isClosed && (
             <button onClick={() => setWaModalOpen(true)} className="w-11 h-11 flex items-center justify-center shrink-0">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="#25D366">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -199,8 +226,15 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         <div ref={bottomRef} />
       </main>
 
+      {/* Closed banner */}
+      {isClosed && (
+        <div className="bg-warm-danger-bg border-t border-warm-danger-border px-4 py-3 text-center shrink-0">
+          <p className="text-warm-danger text-sm font-semibold">🚫 השיחה נסגרה — לא ניתן לשלוח הודעות</p>
+        </div>
+      )}
+
       {/* Input */}
-      <div className="bg-paper border-t border-divider px-4 py-3 flex items-end gap-2 shrink-0">
+      <div className={`bg-paper border-t border-divider px-4 py-3 flex items-end gap-2 shrink-0 ${isClosed ? "opacity-40 pointer-events-none" : ""}`}>
         <button
           onClick={handleSend}
           disabled={!text.trim()}
@@ -219,6 +253,33 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           style={{ minHeight: "44px" }}
         />
       </div>
+
+      {/* Disconnect confirmation modal */}
+      {disconnectModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => !disconnecting && setDisconnectModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-6" dir="rtl">
+            <div className="bg-paper rounded-3xl w-full max-w-sm p-6 flex flex-col gap-5 shadow-2xl">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-full bg-warm-danger-bg flex items-center justify-center">
+                  <X size={26} className="text-warm-danger" strokeWidth={2} />
+                </div>
+                <h2 className="font-serif text-lg font-bold text-ink tracking-tight">סיום השיחה</h2>
+                <p className="text-sm text-ink-2 leading-relaxed">
+                  האם אתה בטוח שאתה רוצה לסיים את השיחה?<br />
+                  <span className="text-warm-danger font-medium">לא ניתן יהיה לשלוח הודעות לאחר מכן.</span>
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setDisconnectModal(false)} disabled={disconnecting} className="flex-1 h-12 rounded-2xl bg-cream font-semibold text-sm text-ink">לא</button>
+                <button onClick={handleDisconnect} disabled={disconnecting} className="flex-1 h-12 rounded-2xl bg-warm-danger text-white font-semibold text-sm flex items-center justify-center">
+                  {disconnecting ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "כן, סיים"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* WhatsApp modal */}
       {waModalOpen && (
