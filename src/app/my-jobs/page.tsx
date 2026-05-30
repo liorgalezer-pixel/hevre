@@ -163,7 +163,7 @@ export default function MyJobsPage() {
       <main className="flex-1 px-4 pt-5 pb-36 flex flex-col gap-4">
 
         {/* Banner */}
-        {jobs.length > 0 && bannerVisible && (
+        {jobs.length > 0 && bannerVisible && postLimit > 2 ? null : jobs.length > 0 && bannerVisible && (
           jobs.length >= postLimit ? (
             <div className="bg-terracotta rounded-2xl px-4 py-4 flex items-center gap-3" style={{ direction: "ltr" }}>
               <button onClick={() => setBannerVisible(false)} className="shrink-0"><X size={18} className="text-cream opacity-60" strokeWidth={2} /></button>
