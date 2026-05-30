@@ -203,13 +203,8 @@ export default function HomePage() {
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("active", true).eq("frozen", false)
         .then(({ count }) => { if (count !== null) setTotalJobCount(count); });
     } else setLoadingMore(true);
-    const { data, error } = await supabase.from("jobs")
-      .select("id, title, company_name, company_address, job_cities, job_states, salary, start_time, end_time, categories, car, license, housing, weekend, description, requirements, q1, q2, q3, created_at, boosted_until, boost_tier, created_by")
-      .eq("active", true)
-      .eq("frozen", false)
-      .order("boosted_until", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)("get_sorted_jobs", { p_page: page, p_page_size: PAGE_SIZE });
     const now = new Date();
     const postedJobs = (data || []).map(j => ({
       id: j.id,
@@ -233,11 +228,6 @@ export default function HomePage() {
       created_by: j.created_by,
     }));
     if (error) { setJobsError(true); setJobsLoading(false); return; }
-    // Sort: featured first → bump second → regular last
-    postedJobs.sort((a, b) => {
-      const p = (j: typeof postedJobs[0]) => j.isFeatured ? 0 : j.isBoosted ? 1 : 2;
-      return p(a) - p(b);
-    });
     setUserJobs(prev => reset ? postedJobs : [...prev, ...postedJobs]);
     setHasMore((data || []).length === PAGE_SIZE);
     setDbPage(page);

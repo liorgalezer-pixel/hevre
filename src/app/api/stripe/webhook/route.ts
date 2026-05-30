@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       // Update job boosted_until + boost_tier
       await supabaseAdmin
         .from("jobs")
-        .update({ boosted_until: boostedUntil, boost_tier: tier })
+        .update({ boosted_until: boostedUntil, boost_tier: tier, last_bumped_at: boostedUntil })
         .eq("id", jobId);
 
       // Record the boost
