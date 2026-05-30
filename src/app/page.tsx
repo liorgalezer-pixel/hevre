@@ -123,10 +123,9 @@ export default function HomePage() {
 
         const dismissedIds: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
         const dismissedApplicants: string[] = JSON.parse(localStorage.getItem("hevre_dismissed_applicants") || "[]");
-        const clearedAt = localStorage.getItem("hevre_notif_cleared_at");
 
-        // Fetch all data in parallel
-        const [allAppsRes, alertNotifRes, myJobsRes] = await Promise.all([
+        // Fetch all data in parallel — including profile for notifications_cleared_at
+        const [allAppsRes, alertNotifRes, myJobsRes, profileRes] = await Promise.all([
           supabase
             .from("applications")
             .select("job_id, status, jobs(title, company_name)")
@@ -141,7 +140,15 @@ export default function HomePage() {
             .from("jobs")
             .select("id, title")
             .eq("created_by", user.id),
+          supabase
+            .from("profiles")
+            .select("notifications_cleared_at")
+            .eq("id", user.id)
+            .single(),
         ]);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const clearedAt: string | null = (profileRes.data as any)?.notifications_cleared_at || localStorage.getItem("hevre_notif_cleared_at");
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const allApps: any[] = allAppsRes.data || [];
@@ -386,17 +393,17 @@ export default function HomePage() {
                   <div className="flex items-center justify-between mb-1" style={{ direction: "ltr" }}>
                     <button
                       onClick={async () => {
+                        const { data: { user: u } } = await supabase.auth.getUser();
+                        const now = new Date().toISOString();
+                        // Save cleared_at to Supabase (persists across sessions)
+                        if (u) {
+                          await supabase.from("profiles").update({ notifications_cleared_at: now }).eq("id", u.id);
+                        }
+                        localStorage.setItem("hevre_notif_cleared_at", now);
                         const existingDismissed: string[] = JSON.parse(localStorage.getItem("hevre_notif_dismissed") || "[]");
-                        const newDismissed = [...new Set([
-                          ...existingDismissed,
-                          ...approvedApps.map(a => a.jobId),
-                          ...rejectedApps.map(a => a.jobId),
-                        ])];
-                        localStorage.setItem("hevre_notif_dismissed", JSON.stringify(newDismissed));
-                        localStorage.setItem("hevre_notif_cleared_at", new Date().toISOString());
+                        localStorage.setItem("hevre_notif_dismissed", JSON.stringify([...new Set([...existingDismissed, ...approvedApps.map(a => a.jobId), ...rejectedApps.map(a => a.jobId)])]));
                         const existingDismissedApplicants: string[] = JSON.parse(localStorage.getItem("hevre_dismissed_applicants") || "[]");
-                        const newDismissedApplicants = [...new Set([...existingDismissedApplicants, ...newApplicants.map(n => `${n.jobId}:${n.applicantId}`)])];
-                        localStorage.setItem("hevre_dismissed_applicants", JSON.stringify(newDismissedApplicants));
+                        localStorage.setItem("hevre_dismissed_applicants", JSON.stringify([...new Set([...existingDismissedApplicants, ...newApplicants.map(n => `${n.jobId}:${n.applicantId}`)])]));
                         setNewApplicants([]);
                         setApprovedApps([]);
                         setRejectedApps([]);
