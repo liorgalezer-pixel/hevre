@@ -67,12 +67,11 @@ export default function MyJobsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setIsLoggedIn(false); setLoaded(true); return; }
       setIsLoggedIn(true);
-      const { data } = await supabase
-        .from("jobs")
-        .select("id, title, salary, company_address, company_name, categories, logo_url, active, frozen, boost_tier, boosted_until")
-        .eq("created_by", user.id)
-        .order("created_at", { ascending: false });
-      const stored = (data || []).map(j => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase.from("jobs").select("*").eq("created_by", user.id).order("created_at", { ascending: false }) as { data: any[]; error: any };
+      if (error) { setLoaded(true); return; }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stored = (data || []).map((j: any) => ({
         id: j.id, title: j.title, salary: j.salary || "",
         companyAddress: j.company_address || "", companyName: j.company_name || "",
         categories: j.categories || [], logoPreview: j.logo_url || null,
