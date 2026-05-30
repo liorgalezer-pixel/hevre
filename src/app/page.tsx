@@ -900,7 +900,7 @@ export default function HomePage() {
       {reportOpen && selectedJob && (
         <>
           <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => !reportSent && setReportOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-[60] bg-paper rounded-t-3xl px-5 pt-5 pb-10 flex flex-col gap-4" dir="rtl">
+          <div className="fixed inset-x-0 bottom-0 z-[60] bg-paper rounded-t-3xl px-5 pt-5 pb-10 flex flex-col gap-4" dir="rtl" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-divider rounded-full mx-auto mb-1" />
             {reportSent ? (
               <div className="flex flex-col items-center gap-3 py-6">
